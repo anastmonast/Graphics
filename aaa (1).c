@@ -40,6 +40,7 @@
 
 typedef struct point{
 	int x, y;
+	char code[4];
 }point;
 
 typedef struct polygon{
@@ -60,10 +61,12 @@ void lineColorMenuEvents(int option);
 void fillColorMenuEvents(int option);
 
 int window, polygons, w, h, yiot;
-int polygonMode = 0;
 int drawingstopped = 0;
+int clippingMode = 0;
+int clippoint = 0;
 int k = 0;
 int numofPol = 0;
+int numofClipped = 0;
 int new_vertex;
 float lineColor[] = {0.0, 0.0, 0.0};	/*** Default line color BLACK ***/
 float fillColor[] = {0.0, 1.0, 0.0};	/*** Default color for triangles GREEN ***/
@@ -71,8 +74,96 @@ bool letsTriangle = false;
 
 point new_point;
 polygon allPolygons [100];
-polygon result[100];
+polygon result[100];		//for Triangle
 
+point clipper[4];		//for Clipping
+polygon clippedPolygons [100];
+
+
+// Returns x-value of point of intersectipn of two 
+// lines 
+int x_intersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4) { 
+    int num = (x1*y2 - y1*x2) * (x3-x4) - (x1-x2) * (x3*y4 - y3*x4); 
+    int den = (x1-x2) * (y3-y4) - (y1-y2) * (x3-x4); 
+    return num/den; 
+} 
+  
+// Returns y-value of point of intersectipn of 
+// two lines 
+int y_intersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4) { 
+    int num = (x1*y2 - y1*x2) * (y3-y4) - (y1-y2) * (x3*y4 - y3*x4); 
+    int den = (x1-x2) * (y3-y4) - (y1-y2) * (x3-x4); 
+    return num/den; 
+} 
+// This functions clips all the edges w.r.t one clip 
+// edge of clipping area 
+polygon clip (polygon myPolygon, int x1, int y1, int x2, int y2){
+	polygon newPolygon;
+	int allPoints = myPolygon.howmany;
+	for (int i = 0 ; i<allPoints; i--)
+	{
+		int k = (i+1) % allPoints; 		//ana duo tis korifes
+		int ix = myPolygon.vertex[i].x;
+		int iy = myPolygon.vertex[i].y;
+        int kx = myPolygon.vertex[k].x;
+        int ky = myPolygon.vertex[k].y;
+
+        // Calculating position of first point 
+        // w.r.t. clipper line
+        int i_pos = (x2-x1) * (iy-y1) - (y2-y1) * (ix-x1); 
+  
+        // Calculating position of second point 
+        // w.r.t. clipper line 
+        int k_pos = (x2-x1) * (ky-y1) - (y2-y1) * (kx-x1);
+	
+        // Case 1 : When both points are inside 
+        if (i_pos < 0  && k_pos < 0) { 
+            //Only second point is added
+            newPolygon.vertex[allPoints].x =  kx;
+            newPolygon.vertex[allPoints].y =  ky;
+            newPolygon.howmany ++;
+            
+            allPoints++; 
+        }else if (i_pos >= 0  && k_pos < 0) // Case 2: When only first point is outside 
+        { 
+            // Point of intersection with edge 
+            // and the second point is added 
+            newPolygon.vertex[allPoints].x = x_intersect(x1, y1, x2, y2, ix, iy, kx, ky); 
+            newPolygon.vertex[allPoints].y = y_intersect(x1, y1, x2, y2, ix, iy, kx, ky); 
+           	newPolygon.howmany ++;
+            allPoints++; 
+     
+            newPolygon.vertex[allPoints].x =  kx;
+            newPolygon.vertex[allPoints].y =  ky;
+            newPolygon.howmany ++;
+            allPoints++;
+            
+        }else if (i_pos < 0  && k_pos >= 0) // Case 3: When only second point is outside 
+        { 
+            //Only point of intersection with edge is added 
+            newPolygon.vertex[allPoints].x = x_intersect(x1, y1, x2, y2, ix, iy, kx, ky); 
+            newPolygon.vertex[allPoints].y = y_intersect(x1, y1, x2, y2, ix, iy, kx, ky); 
+           	newPolygon.howmany ++;
+            allPoints++; 
+        }else{ 			// Case 4: When both points are outside 
+            //No points are added 
+        } 
+	}
+	return newPolygon;
+}
+
+void doClipping (polygon allPolygons[], point clipper[]){
+
+	for (int j = 0; j<numofPol; j++){	
+		for (int i = 0; i < 4; ++i){
+			int k = (i+1) % 4;
+			allPolygons[0] = clip(allPolygons[0], clipper[i].x, clipper[i].y, clipper[k].x, clipper[k].y);
+		}
+	}
+	//clip(allPolygons[0], clipper[i].x, clipper[i].y, clipper[k].x, clipper[k].y);
+	clippingMode = 0;
+	glutPostRedisplay();
+}
 
 float Area(polygon myPolygon){
 
@@ -211,7 +302,6 @@ bool Process(polygon myPolygon, int eachpol){
 }
 
 
-
 void initGL(){
   	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
 }
@@ -220,25 +310,42 @@ void window_reshape(int width, int height){
 	glutReshapeWindow( width, height); 
 }
 
-
 void mouse(int button, int state, int x, int y) {
 	
-	if (drawingstopped){
+	if (drawingstopped && !clippingMode){
 		glutPostRedisplay();
     	return;
 	}
 	
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
-		new_point.x = x;
-		new_point.y = y;
-		new_vertex = allPolygons[numofPol].howmany;
+		
+		if (clippingMode){
+			if (clippoint>=4){
+				clipper[1].x = clipper[0].x;
+				clipper[1].y = clipper[2].y;
+				clipper[3].x = clipper[2].x;
+				clipper[3].y = clipper[0].y;
+				doClipping(allPolygons, clipper);
+				glutPostRedisplay();
+    			return;	
+			}
+			printf("mouse\n");
+			clipper[clippoint].x = x;		//Save top left corner first[0] and then right bottom[2]
+			clipper[clippoint].y = y;
+			clippoint += 2;
+			
+		}else{
+			new_point.x = x;
+			new_point.y = y;
+			new_vertex = allPolygons[numofPol].howmany;
 
-		allPolygons[numofPol].vertex[new_vertex] = new_point;
-		allPolygons[numofPol].howmany ++;
-		printf("Korifes %d\n", allPolygons[numofPol].howmany);
+			allPolygons[numofPol].vertex[new_vertex] = new_point;
+			allPolygons[numofPol].howmany ++;
+			printf("Korifes %d\n", allPolygons[numofPol].howmany);
 	
-		//Detach right click from menu so can stop selecting points
-		glutDetachMenu(GLUT_RIGHT_BUTTON);
+			//Detach right click from menu so can stop selecting points
+			glutDetachMenu(GLUT_RIGHT_BUTTON);
+		}
 		
 	}
 	
@@ -268,8 +375,6 @@ void keyboard(unsigned char key, int x, int y) {
    }
 }
 
-
-
 void drawLines(){
 	int j=0;
 	int z;
@@ -283,6 +388,7 @@ void drawLines(){
 			while (k <yiot -1){
 				if (yiot>3){
 					for (j=0; j<(yiot-3); j++){
+						
 						if(LineIntersect(allPolygons[z].vertex[yiot-2].x, allPolygons[z].vertex[yiot-2].y, allPolygons[z].vertex[yiot-1].x, allPolygons[z].vertex[yiot-1].y, allPolygons[z].vertex[j].x, allPolygons[z].vertex[j].y, allPolygons[z].vertex[j+1].x, allPolygons[z].vertex[j+1].y)){
 							allPolygons[z].howmany = 0; // delete the vertexes
 							//free (allPolygons[z]);
@@ -297,17 +403,16 @@ void drawLines(){
         		k++;
 			}
 			k=0;
+			if(drawingstopped==1 || z<numofPol){
+				glVertex2f( allPolygons[z].vertex[yiot-1].x , h-allPolygons[z].vertex[yiot-1].y);
+				glVertex2f(allPolygons[z].vertex[0].x, h-allPolygons[z].vertex[0].y);
 			
-			if (z < numofPol){
-				glVertex2f( allPolygons[z].vertex[yiot-1].x , h-allPolygons[z].vertex[yiot-1].y);
-				glVertex2f(allPolygons[z].vertex[0].x, h-allPolygons[z].vertex[0].y);
-			}else if(drawingstopped==1){			
-				glVertex2f( allPolygons[z].vertex[yiot-1].x , h-allPolygons[z].vertex[yiot-1].y);
-				glVertex2f(allPolygons[z].vertex[0].x, h-allPolygons[z].vertex[0].y);
-				polygonMode = 0;
-			}
+		    }
 		    glEnd();
 		}
+		lineColor[0] = 0.0;	// Set to default again
+		lineColor[1] = 0.0;
+		lineColor[2] = 0.0;
 	}
 	
 }
@@ -320,7 +425,7 @@ void drawTriangles(){
 		count = result[i].howmany / 3;
 		printf("POSA TRIGWNA %d KORIFES %d\n", count, result[i].howmany );
 		
-		glColor3f(0.0, 1.0, 0.0);
+		glColor3f(1.0, 0.0, 0.0);
 		glLineWidth(1);
 		
 		glBegin(GL_LINES);
@@ -359,15 +464,13 @@ bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y
 	mub = arithb/paron;
 	if (mua <0 || mua>1 || mub<0 || mub>1){
 		
-		return(0);
-		
+		return(0);	
 	}
 	return(1);
 	
 }
 
 void display(void) {
-	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
 	
 	glutSwapBuffers();
     glClear( GL_COLOR_BUFFER_BIT );
@@ -382,9 +485,8 @@ void display(void) {
     	printf("TRIANGLE DISPLAY \n");
     	drawTriangles();
     }
-    if (polygonMode){
-    	drawLines();
-	}
+    
+    drawLines();
     
 	glFlush();
 	
@@ -397,11 +499,12 @@ void processMenuEvents(int option) {
 			allPolygons[numofPol].color[0] = lineColor[0];
 			allPolygons[numofPol].color[1] = lineColor[1];
 			allPolygons[numofPol].color[2] = lineColor[2];
-			polygonMode = 1;
 			drawingstopped = 0;	
 			glutMouseFunc(mouse);
 			break; 
 		case CLIPPING :
+			clippingMode = 1;
+			glutMouseFunc(mouse);
         	break;	
         case EXTRUDE :
         	break;	
@@ -417,6 +520,7 @@ void createGLUTMenus() {
 	
 	ACTION = glutCreateMenu(processMenuEvents);	
 	glutAddMenuEntry("Polygon", POLYGON);		/*** Create the ***/
+	glutAddMenuEntry("Clipping", CLIPPING);
 	glutAddMenuEntry("Exit", EXIT);				/*** subMenus' choises ***/
 	
 	LINE_COLOR = glutCreateMenu(lineColorMenuEvents);
@@ -670,8 +774,6 @@ int main(int argc, char** argv) {
 	glutDisplayFunc(display);
 	createGLUTMenus(); 
 	glutKeyboardFunc(keyboard);
-		
-
 
 	glutMainLoop(); 
 	return 1;
@@ -681,4 +783,3 @@ int main(int argc, char** argv) {
 	kai allou ta vazoume sti lista */
 
 }
-
