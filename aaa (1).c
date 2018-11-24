@@ -45,7 +45,7 @@ typedef struct point{
 typedef struct polygon{
 	point vertex [100];
 	int howmany;
-	float color[] = {0.0, 0.0, 0.0};	
+	float color[3];	
 }polygon;
 
 bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
@@ -274,7 +274,7 @@ void drawLines(){
 	int z;
 	for (z = 0; z <= numofPol; z++){
 		if (allPolygons[z].howmany > 1){
-			glColor3f(1.0, 0.0, 0.0);
+			glColor3f(allPolygons[z].color[0], allPolygons[z].color[1], allPolygons[z].color[2]);
 			glLineWidth(1);
 			glBegin(GL_LINES);
 			
@@ -387,6 +387,9 @@ void processMenuEvents(int option) {
 
 	switch (option) {
 		case POLYGON :
+			allPolygons[numofPol].color[0] = lineColor[0];
+			allPolygons[numofPol].color[1] = lineColor[1];
+			allPolygons[numofPol].color[2] = lineColor[2];
 			drawingstopped = 0;	
 			glutMouseFunc(mouse);
 			break; 
@@ -544,6 +547,8 @@ void lineColorMenuEvents(int option){
       break;
 	}
 	
+	
+	
 }	
 
 void fillColorMenuEvents(int option){
@@ -651,7 +656,7 @@ int main(int argc, char** argv) {
 	glutInitWindowPosition(50, 50);
 	glutInitWindowSize(500, 600);
 	w = glutGet( GLUT_WINDOW_WIDTH );
-    h = glutGet( GLUT_WINDOW_HEIGHT );
+    	h = glutGet( GLUT_WINDOW_HEIGHT );
 	initGL();
 	glutReshapeFunc(window_reshape);
 	glutDisplayFunc(display);
