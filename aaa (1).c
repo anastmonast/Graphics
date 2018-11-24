@@ -59,7 +59,8 @@ void createGLUTMenus();
 void lineColorMenuEvents(int option);
 void fillColorMenuEvents(int option);
 
-int window, polygons, w, h, yiot;;
+int window, polygons, w, h, yiot;
+int polygonMode = 0;
 int drawingstopped = 0;
 int k = 0;
 int numofPol = 0;
@@ -296,11 +297,15 @@ void drawLines(){
         		k++;
 			}
 			k=0;
-			if(drawingstopped==1 || z<numofPol){
+			
+			if (z < numofPol){
 				glVertex2f( allPolygons[z].vertex[yiot-1].x , h-allPolygons[z].vertex[yiot-1].y);
 				glVertex2f(allPolygons[z].vertex[0].x, h-allPolygons[z].vertex[0].y);
-			
-		    }
+			}else if(drawingstopped==1){			
+				glVertex2f( allPolygons[z].vertex[yiot-1].x , h-allPolygons[z].vertex[yiot-1].y);
+				glVertex2f(allPolygons[z].vertex[0].x, h-allPolygons[z].vertex[0].y);
+				polygonMode = 0;
+			}
 		    glEnd();
 		}
 	}
@@ -315,7 +320,7 @@ void drawTriangles(){
 		count = result[i].howmany / 3;
 		printf("POSA TRIGWNA %d KORIFES %d\n", count, result[i].howmany );
 		
-		glColor3f(1.0, 0.0, 0.0);
+		glColor3f(0.0, 1.0, 0.0);
 		glLineWidth(1);
 		
 		glBegin(GL_LINES);
@@ -362,6 +367,7 @@ bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y
 }
 
 void display(void) {
+	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
 	
 	glutSwapBuffers();
     glClear( GL_COLOR_BUFFER_BIT );
@@ -376,8 +382,9 @@ void display(void) {
     	printf("TRIANGLE DISPLAY \n");
     	drawTriangles();
     }
-    
-    drawLines();
+    if (polygonMode){
+    	drawLines();
+	}
     
 	glFlush();
 	
@@ -390,6 +397,7 @@ void processMenuEvents(int option) {
 			allPolygons[numofPol].color[0] = lineColor[0];
 			allPolygons[numofPol].color[1] = lineColor[1];
 			allPolygons[numofPol].color[2] = lineColor[2];
+			polygonMode = 1;
 			drawingstopped = 0;	
 			glutMouseFunc(mouse);
 			break; 
@@ -656,7 +664,7 @@ int main(int argc, char** argv) {
 	glutInitWindowPosition(50, 50);
 	glutInitWindowSize(500, 600);
 	w = glutGet( GLUT_WINDOW_WIDTH );
-    	h = glutGet( GLUT_WINDOW_HEIGHT );
+    h = glutGet( GLUT_WINDOW_HEIGHT );
 	initGL();
 	glutReshapeFunc(window_reshape);
 	glutDisplayFunc(display);
@@ -673,8 +681,4 @@ int main(int argc, char** argv) {
 	kai allou ta vazoume sti lista */
 
 }
-
-
-
-
 
