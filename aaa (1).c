@@ -47,13 +47,12 @@ point new_point;
 polygon allPolygons [100];
 
 polygon result[100];
-int eachpol=0;
 
 
 float Area(polygon myPolygon);
 bool isItInside(float Ax, float Ay, float Bx, float By, float Cx, float Cy, float Px, float Py);
 bool Snip(polygon myPolygon, int u,int v,int w,int n,int *V);
-bool Process(polygon myPolygon);
+bool Process(polygon myPolygon, int eachpol);
 
 float Area(polygon myPolygon){
 
@@ -71,8 +70,6 @@ bool isItInside(float Ax, float Ay, float Bx, float By, float Cx, float Cy, floa
 	float ax, ay, bx, by, cx, cy, apx, apy, bpx, bpy, cpx, cpy;
   	float cCROSSap, bCROSScp, aCROSSbp;
   	
-  	printf("INSIDE\n");
-
   	ax = Cx - Bx;  ay = Cy - By;
   	bx = Ax - Cx;  by = Ay - Cy;
   	cx = Bx - Ax;  cy = By - Ay;
@@ -103,7 +100,6 @@ bool Snip(polygon myPolygon, int u,int v,int w,int n,int *V){
 	if ( EP > (((Bx-Ax)*(Cy-Ay)) - ((By-Ay)*(Cx-Ax))) ) {
 		return false;
 	}
-	printf("SNIP\n");
 
 	for (p=0;p<n;p++){
     	if( (p == u) || (p == v) || (p == w) ){
@@ -119,7 +115,7 @@ bool Snip(polygon myPolygon, int u,int v,int w,int n,int *V){
   	return true;
 }
 
-bool Process(polygon myPolygon){
+bool Process(polygon myPolygon, int eachpol){
 	
 	int n = myPolygon.howmany;		///EDWWWWWWWWW
 	int v;
@@ -232,7 +228,7 @@ void mouse(int button, int state, int x, int y) {
 		glutAttachMenu(GLUT_RIGHT_BUTTON); //attach right click to menu again
 		//numofPol++;	
 		glutPostRedisplay();
-		Process(allPolygons[numofPol]);
+		Process(allPolygons[numofPol], numofPol);
 		numofPol++;
     	return;
 	}
@@ -347,7 +343,7 @@ bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y
 }
 
 void display(void) {
-//	float ratio = 1.0* w / h;
+
 	glutSwapBuffers();
 	
     glClear( GL_COLOR_BUFFER_BIT );
@@ -359,12 +355,11 @@ void display(void) {
     glLoadIdentity();
 
     if (letsTriangle){
-    	printf("WELL\n");
+    	printf("TRIANGLE DISPLAY \n");
     	drawTringles();
     }
     
     drawLines();
-     //AUTI PREPEI NA KALEITE SE DISPLAY GIA NA GINEI
     
 	glFlush();
 	
@@ -434,8 +429,3 @@ int main(int argc, char** argv) {
 	kai allou ta vazoume sti lista */
 
 }
-
-
-
-
-
