@@ -8,34 +8,34 @@
 #include <stdlib.h>
 //#include <windows.h>
 
-#define POLYGON 0
-#define CLIPPING 1
-#define EXTRUDE 2
-#define EXIT 3
-#define LINECOLOR 4
-#define FILLCOLOR 5
+#define POLYGON 	0
+#define CLIPPING 	1
+#define EXTRUDE 	2
+#define EXIT 		3
+#define LINECOLOR 	4
+#define FILLCOLOR 	5
 
-#define WIDTH 600
-#define HEIGHT 500
-#define EP 0.000001
+#define WIDTH 	600
+#define HEIGHT 	500
+#define EP 		0.000001
 
 //LINE_COLOR & FILL_COLOR menu defines
-#define WHITE 1         //glColor3f(1, 1, 1);
-#define BLACK 2      	//glColor3f(0, 0, 0);
-#define RED 3           //glColor3f(1, 0, 0);
-#define DARK_GREEN 4  	//glColor3f(0, 0.5, 0);
+#define WHITE		1	//glColor3f(1, 1, 1);
+#define BLACK 		2  	//glColor3f(0, 0, 0);
+#define RED 		3 	//glColor3f(1, 0, 0);
+#define DARK_GREEN 	4  	//glColor3f(0, 0.5, 0);
 #define LIGHT_GREEN 5 	//glColor3f(0, 1, 0);
-#define BLUE 6     		//glColor3f(0, 0, 1);
-#define AQUA 7   		//glColor3f(0, 1, 1);
-#define PINK 8    		//gcColor3f(1, 0, 1);
-#define SOFT_PINK 9 	//glColor3f(1, 0.8, 0.9);
-#define PURPLE 10  		//glColor3f(0.5, 0, 1);
-#define BROWN 11   		//glColor3f(0.5, 0.2, 0);
-#define YELLOW 12  		//glColor3f(1, 1, 0);
-#define GRAY 13    		//glColor3f(0.5, 0.5, 0.5);
-#define ORANGE 14  		//glColor3f(1, 0.5, 0);
-#define GOLD 15  		//glColor3f(1, 0.85, 0);
-#define BEIGE 16 		//glColor3f(0.95, 0.95, 0.85);
+#define BLUE 		6   //glColor3f(0, 0, 1);
+#define AQUA 		7   //glColor3f(0, 1, 1);
+#define PINK 		8   //gcColor3f(1, 0, 1);
+#define SOFT_PINK 	9 	//glColor3f(1, 0.8, 0.9);
+#define PURPLE 		10  //glColor3f(0.5, 0, 1);
+#define BROWN 		11  //glColor3f(0.5, 0.2, 0);
+#define YELLOW 		12  //glColor3f(1, 1, 0);
+#define GRAY 		13  //glColor3f(0.5, 0.5, 0.5);
+#define ORANGE 		14  //glColor3f(1, 0.5, 0);
+#define GOLD 		15  //glColor3f(1, 0.85, 0);
+#define BEIGE 		16 	//glColor3f(0.95, 0.95, 0.85);
 
 
 typedef struct point{
@@ -44,7 +44,8 @@ typedef struct point{
 
 typedef struct polygon{
 	point vertex [100];
-	int howmany;	
+	int howmany;
+	float color[] = {0.0, 0.0, 0.0};	
 }polygon;
 
 bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
@@ -211,7 +212,7 @@ bool Process(polygon myPolygon, int eachpol){
 
 
 void initGL(){
-  	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+  	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
 }
 
 void window_reshape(int width, int height){
@@ -361,9 +362,8 @@ bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y
 }
 
 void display(void) {
-
-	glutSwapBuffers();
 	
+	glutSwapBuffers();
     glClear( GL_COLOR_BUFFER_BIT );
 
     glMatrixMode( GL_PROJECTION );
@@ -543,6 +543,7 @@ void lineColorMenuEvents(int option){
       lineColor[2]=0.85;
       break;
 	}
+	
 }	
 
 void fillColorMenuEvents(int option){
@@ -650,14 +651,14 @@ int main(int argc, char** argv) {
 	glutInitWindowPosition(50, 50);
 	glutInitWindowSize(500, 600);
 	w = glutGet( GLUT_WINDOW_WIDTH );
-    	h = glutGet( GLUT_WINDOW_HEIGHT );
-	
-	glutDisplayFunc(display);
+    h = glutGet( GLUT_WINDOW_HEIGHT );
+	initGL();
 	glutReshapeFunc(window_reshape);
+	glutDisplayFunc(display);
 	createGLUTMenus(); 
 	glutKeyboardFunc(keyboard);
 		
-	initGL();
+
 
 	glutMainLoop(); 
 	return 1;
