@@ -6,7 +6,7 @@
 #include <GL/glut.h> 
 #include <stdbool.h>
 #include <stdlib.h>
-#include <windows.h>
+//#include <windows.h>
 
 #define POLYGON 0
 #define EXIT 1
@@ -16,22 +16,20 @@
 #define WIDTH 600
 #define HEIGHT 500
 #define one 1
-#define EP 0.00001
+#define EP 0.000001
 
-bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
- 
-int window, polygons;
+int ACTION, MAINMENU, LINE_COLOR, FILL_COLOR;
+int window, polygons, w, h, yiot;;
 int drawingstopped = 0;
 int k = 0;
-int w,h, yiot;
 int numofPol = 0;
 int new_vertex;
 
+bool letsTriangle = false;
 
-int ACTION, MAINMENU, LINE_COLOR, FILL_COLOR;
-
+bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
+ 
 void render_scene (void);
-
 void drawLines();
 
 typedef struct point{
@@ -39,15 +37,164 @@ typedef struct point{
 }point;
 
 typedef struct polygon{
-	point vertex [50];
+	point vertex [100];
 	int howmany;	
 }polygon;
 
-int i = 0;
 point points[100];
 point new_point;
 
 polygon allPolygons [100];
+
+polygon result[100];
+int eachpol=0;
+
+
+float Area(polygon myPolygon);
+bool isItInside(float Ax, float Ay, float Bx, float By, float Cx, float Cy, float Px, float Py);
+bool Snip(polygon myPolygon, int u,int v,int w,int n,int *V);
+bool Process(polygon myPolygon);
+
+float Area(polygon myPolygon){
+
+	int n = myPolygon.howmany;
+	float a =0;
+	int p, q;
+	for (p=n-1, q=0; q<n; p=q++){
+		a += myPolygon.vertex[p].x * myPolygon.vertex[q].y - myPolygon.vertex[q].x * myPolygon.vertex[p].y ;
+	}
+	return a*0.5;
+
+}
+
+bool isItInside(float Ax, float Ay, float Bx, float By, float Cx, float Cy, float Px, float Py){
+	float ax, ay, bx, by, cx, cy, apx, apy, bpx, bpy, cpx, cpy;
+  	float cCROSSap, bCROSScp, aCROSSbp;
+  	
+  	printf("INSIDE\n");
+
+  	ax = Cx - Bx;  ay = Cy - By;
+  	bx = Ax - Cx;  by = Ay - Cy;
+  	cx = Bx - Ax;  cy = By - Ay;
+  	apx= Px - Ax;  apy= Py - Ay;
+  	bpx= Px - Bx;  bpy= Py - By;
+  	cpx= Px - Cx;  cpy= Py - Cy;
+
+  	aCROSSbp = ax*bpy - ay*bpx;
+ 	cCROSSap = cx*apy - cy*apx;
+  	bCROSScp = bx*cpy - by*cpx;
+
+  	return ((aCROSSbp >= 0.0) && (bCROSScp >= 0.0) && (cCROSSap >= 0.0));
+}
+
+bool Snip(polygon myPolygon, int u,int v,int w,int n,int *V){
+	int p;
+	float Ax, Ay, Bx, By, Cx, Cy, Px, Py;
+
+	Ax = myPolygon.vertex[V[u]].x;
+  	Ay = myPolygon.vertex[V[u]].y;
+
+  	Bx = myPolygon.vertex[V[v]].x;
+  	By = myPolygon.vertex[V[v]].y;
+
+  	Cx = myPolygon.vertex[V[w]].x;
+  	Cy = myPolygon.vertex[V[w]].y;
+
+	if ( EP > (((Bx-Ax)*(Cy-Ay)) - ((By-Ay)*(Cx-Ax))) ) {
+		return false;
+	}
+	printf("SNIP\n");
+
+	for (p=0;p<n;p++){
+    	if( (p == u) || (p == v) || (p == w) ){
+    		continue;
+    	} 
+    	Px = myPolygon.vertex[V[p]].x;
+    	Py = myPolygon.vertex[V[p]].y;
+    	if (isItInside(Ax,Ay,Bx,By,Cx,Cy,Px,Py)){ 
+    		return false;
+    	}
+  	}
+
+  	return true;
+}
+
+bool Process(polygon myPolygon){
+	
+	int n = myPolygon.howmany;		///EDWWWWWWWWW
+	int v;
+	printf("Process how many%d \n", myPolygon.howmany);
+	if (n<3){
+		return false;
+	}
+	int *V; 
+	V = (int*) malloc (n*sizeof(int));
+
+
+	if (0 < Area(myPolygon)){
+		for (v = 0; v < n; ++v){
+			V[v] = v;
+		}
+	}else{
+		for (v = 0; v < n; ++v){
+			V[v] = (n-1)-v;
+		}
+	}
+	int nv = n;	
+	int count = 2*nv;
+	int m;
+	int eachpoint =0;
+
+	for (m = 0, v=nv-1; nv>2;){
+		if ( 0>= (count--)){
+			return false;
+		}
+
+		int u = v;
+		if (nv<=u){
+			u=0;
+		}
+		v = u +1;
+		if (nv <= v){
+			v=0;
+		}
+		int w = v+1;
+		if (nv <=w){
+			w=0;
+		}
+
+		if (Snip(myPolygon, u, v, w, nv, V)){
+			int a, b, c, s, t;
+			a = V[u];
+			b = V[v];
+			c = V[w];
+			
+
+			result[eachpol].vertex[eachpoint] = myPolygon.vertex[a]; 
+			eachpoint ++;
+			result[eachpol].vertex[eachpoint] = myPolygon.vertex[b]; 
+			eachpoint ++;
+			result[eachpol].vertex[eachpoint] = myPolygon.vertex[c]; 
+			eachpoint ++;
+			result[eachpol].howmany += 3;
+
+			m++;
+
+			for (s=v, t=v+1; t<nv; s++, t++){
+				V[s] = V[t];
+				nv--;
+			}
+			count = 2*nv;
+		}
+	}
+
+	free (V);
+
+	return true;
+
+}
+
+
 
 void initGL(){
   	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -56,12 +203,6 @@ void initGL(){
 void window_reshape(int width, int height){
 	glutReshapeWindow( width, height); 
 }
-/*
-void addToList (polygon new_pol){
-	allPolygons[numofPol] = new_pol;
-	numofPol++;
-	allPolygons = (polygon*) realloc (allPolygons, sizeof(polygon));
-}*/
 
 
 void mouse(int button, int state, int x, int y) {
@@ -72,26 +213,31 @@ void mouse(int button, int state, int x, int y) {
 	}
 	
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
-		printf("Point: %d saved\n", i);
 		new_point.x = x;
 		new_point.y = y;
 		new_vertex = allPolygons[numofPol].howmany;
 
 		allPolygons[numofPol].vertex[new_vertex] = new_point;
 		allPolygons[numofPol].howmany ++;
+		printf("Korifes %d\n", allPolygons[numofPol].howmany);
 	
-		i++;	//vertex(how many points)	
+		//Detach right click from menu so can stop selecting points
+		glutDetachMenu(GLUT_RIGHT_BUTTON);
+		
 	}
 	
 	if ( button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN ){ //right click to finish drawing a polygon
-		printf("Start drawing");
 		drawingstopped = 1;
+		
 		glutAttachMenu(GLUT_RIGHT_BUTTON); //attach right click to menu again
-		numofPol++;	
+		//numofPol++;	
 		glutPostRedisplay();
+		Process(allPolygons[numofPol]);
+		numofPol++;
     	return;
 	}
 	glutPostRedisplay();
+
 }
 
 void keyboard(unsigned char key, int x, int y) {
@@ -99,6 +245,10 @@ void keyboard(unsigned char key, int x, int y) {
       case 27:     // ESC key
          exit(0);
          break;
+      case 'T':
+      	letsTriangle = !letsTriangle;
+		glutPostRedisplay();
+      	break;
    }
 }
 
@@ -107,7 +257,7 @@ void keyboard(unsigned char key, int x, int y) {
 void drawLines(){
 	int j=0;
 	int z;
-	for (z = 0; z < numofPol; z++){
+	for (z = 0; z <= numofPol; z++){
 		if (allPolygons[z].howmany > 1){
 			glColor3f(1.0, 0.0, 0.0);
 			glLineWidth(1);
@@ -131,7 +281,7 @@ void drawLines(){
         		k++;
 			}
 			k=0;
-			if(drawingstopped==1){
+			if(drawingstopped==1 || z<numofPol){
 				glVertex2f( allPolygons[z].vertex[yiot-1].x , h-allPolygons[z].vertex[yiot-1].y);
 				glVertex2f(allPolygons[z].vertex[0].x, h-allPolygons[z].vertex[0].y);
 			
@@ -140,6 +290,36 @@ void drawLines(){
 		}
 	}
 	
+}
+
+void drawTringles(){
+
+	int i, j, count;
+	for ( i = 0; i <numofPol; ++i){
+		
+		count = result[i].howmany / 3;
+		printf("POSA TRIGWNA %d KORIFES %d\n", count, result[i].howmany );
+		
+		glColor3f(1.0, 0.0, 0.0);
+		glLineWidth(1);
+		
+		glBegin(GL_LINES);
+		
+		for (j = 0; j < count; ++j){
+			printf("for draw\n");
+			
+			glVertex2f(result[i].vertex[j*3].x, h-result[i].vertex[j*3].y);
+			glVertex2f(result[i].vertex[j*3+1].x, h-result[i].vertex[j*3+1].y);
+
+			glVertex2f(result[i].vertex[j*3+1].x, h-result[i].vertex[j*3+1].y);
+			glVertex2f(result[i].vertex[j*3+2].x, h-result[i].vertex[j*3+2].y);
+
+			glVertex2f(result[i].vertex[j*3+2].x, h-result[i].vertex[j*3+2].y);
+			glVertex2f(result[i].vertex[j*3].x, h-result[i].vertex[j*3].y);
+		}
+		glEnd();
+	}
+
 }
 
 bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4){
@@ -151,7 +331,7 @@ bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y
 	
 	//einai paraliles?
 	if (abs(paron) < EP){
-		return(FALSE);
+		return(0);
 	}
 	
 	//einai telika autotemnomena?
@@ -159,10 +339,10 @@ bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y
 	mub = arithb/paron;
 	if (mua <0 || mua>1 || mub<0 || mub>1){
 		
-		return(FALSE);
+		return(0);
 		
 	}
-	return(TRUE);
+	return(1);
 	
 }
 
@@ -177,8 +357,14 @@ void display(void) {
     glOrtho(0,w,0,h,-1,1);
     glMatrixMode( GL_MODELVIEW );
     glLoadIdentity();
+
+    if (letsTriangle){
+    	printf("WELL\n");
+    	drawTringles();
+    }
     
-    drawLines(); //AUTI PREPEI NA KALEITE SE DISPLAY GIA NA GINEI
+    drawLines();
+     //AUTI PREPEI NA KALEITE SE DISPLAY GIA NA GINEI
     
 	glFlush();
 	
@@ -188,10 +374,8 @@ void processMenuEvents(int option) {
 
 	switch (option) {
 		case POLYGON :
-			drawingstopped = 0;
-			glutDetachMenu(GLUT_RIGHT_BUTTON); 	//Detach right click from menu so can stop selecting points (mouse)
+			drawingstopped = 0;	
 			glutMouseFunc(mouse);
-			printf("POLYGON MODE/n");
 			break; 
         case EXIT :
         	exit(0);
@@ -221,6 +405,7 @@ void createGLUTMenus() {
 	glutAddMenuEntry("Line Color", LINE_COLOR);
 	glutAddMenuEntry("Fill Color", FILL_COLOR);
 
+
 	// attach the menu to the right button
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
@@ -232,22 +417,25 @@ int main(int argc, char** argv) {
 	glutInitWindowPosition(50, 50);
 	glutInitWindowSize(500, 600);
 	w = glutGet( GLUT_WINDOW_WIDTH );
-    h = glutGet( GLUT_WINDOW_HEIGHT );
+    	h = glutGet( GLUT_WINDOW_HEIGHT );
 	
 	glutDisplayFunc(display);
 	glutReshapeFunc(window_reshape);
 	createGLUTMenus(); 
+	glutKeyboardFunc(keyboard);
 		
 	initGL();
 
 	glutMainLoop(); 
 	return 1;
 	
-	/* Prepei na tsekaroume ti paizei me glNewList(polygons, GL_COMPILE);, 
+	/*  glNewList(polygons, GL_COMPILE);, 
 	allou sxediasoyme, allou kaloume sxediasi
-	kai allou ta vazoume sti lista ELA LIGO GIA PAME*/
+	kai allou ta vazoume sti lista */
 
 }
+
+
 
 
 
