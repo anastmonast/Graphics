@@ -15,10 +15,8 @@
 #define LINECOLOR 4
 #define FILLCOLOR 5
 
-
 #define WIDTH 600
 #define HEIGHT 500
-#define one 1
 #define EP 0.000001
 
 //LINE_COLOR & FILL_COLOR menu defines
@@ -39,18 +37,6 @@
 #define GOLD 15  		//glColor3f(1, 0.85, 0);
 #define BEIGE 16 		//glColor3f(0.95, 0.95, 0.85);
 
-int window, polygons, w, h, yiot;;
-int drawingstopped = 0;
-int k = 0;
-int numofPol = 0;
-int new_vertex;
-
-bool letsTriangle = false;
-
-bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
- 
-void render_scene (void);
-void drawLines();
 
 typedef struct point{
 	int x, y;
@@ -61,18 +47,30 @@ typedef struct polygon{
 	int howmany;	
 }polygon;
 
-point points[100];
-point new_point;
-
-polygon allPolygons [100];
-
-polygon result[100];
-
-
+bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
 float Area(polygon myPolygon);
 bool isItInside(float Ax, float Ay, float Bx, float By, float Cx, float Cy, float Px, float Py);
 bool Snip(polygon myPolygon, int u,int v,int w,int n,int *V);
 bool Process(polygon myPolygon, int eachpol);
+void drawLines();
+void drawTriangles();
+void createGLUTMenus();
+void lineColorMenuEvents(int option);
+void fillColorMenuEvents(int option);
+
+int window, polygons, w, h, yiot;;
+int drawingstopped = 0;
+int k = 0;
+int numofPol = 0;
+int new_vertex;
+float lineColor[] = {0.0, 0.0, 0.0};	/*** Default line color BLACK ***/
+float fillColor[] = {0.0, 1.0, 0.0};	/*** Default color for triangles GREEN ***/
+bool letsTriangle = false;
+
+point new_point;
+polygon allPolygons [100];
+polygon result[100];
+
 
 float Area(polygon myPolygon){
 
@@ -308,7 +306,7 @@ void drawLines(){
 	
 }
 
-void drawTringles(){
+void drawTriangles(){
 
 	int i, j, count;
 	for ( i = 0; i <numofPol; ++i){
@@ -376,7 +374,7 @@ void display(void) {
 
     if (letsTriangle){
     	printf("TRIANGLE DISPLAY \n");
-    	drawTringles();
+    	drawTriangles();
     }
     
     drawLines();
@@ -410,7 +408,7 @@ void createGLUTMenus() {
 	glutAddMenuEntry("Polygon", POLYGON);		/*** Create the ***/
 	glutAddMenuEntry("Exit", EXIT);				/*** subMenus' choises ***/
 	
-	LINE_COLOR = glutCreateMenu(processMenuEvents);
+	LINE_COLOR = glutCreateMenu(lineColorMenuEvents);
 	glutAddMenuEntry("White", 1);    
   	glutAddMenuEntry("Black", 2);
   	glutAddMenuEntry("Red", 3);
@@ -455,6 +453,195 @@ void createGLUTMenus() {
 
 	glutAttachMenu(GLUT_RIGHT_BUTTON);	/**** attach the menu to the right button ****/
 }
+	
+	
+void lineColorMenuEvents(int option){
+	
+	switch(option){
+    
+    case WHITE:
+      lineColor[0]=1;
+      lineColor[1]=1;
+      lineColor[2]=1;
+      break;
+ 
+    case BLACK:
+      lineColor[0]=0;
+      lineColor[1]=0;
+      lineColor[2]=0;
+      break;
+ 
+    case RED:
+      lineColor[0]=1;
+      lineColor[1]=0;
+      lineColor[2]=0;
+      break;
+    case DARK_GREEN:
+      lineColor[0]=0;
+      lineColor[1]=0.5;
+      lineColor[2]=0;
+      break;
+    case LIGHT_GREEN:
+      lineColor[0]=0;
+      lineColor[1]=1;
+      lineColor[2]=0;
+      break;
+    case BLUE:
+      lineColor[0]=0;
+      lineColor[1]=0;
+      lineColor[2]=1;
+      break;
+ 	case AQUA:
+      lineColor[0]=0;
+      lineColor[1]=1;
+      lineColor[2]=1;
+      break;
+    case PINK:
+      lineColor[0]=1;
+      lineColor[1]=0;
+      lineColor[2]=1;
+      break;
+    case SOFT_PINK:
+      lineColor[0]=1;
+      lineColor[1]=0.8;
+      lineColor[2]=0.9;
+      break;
+    case PURPLE:
+      lineColor[0]=0.5;
+      lineColor[1]=0;
+      lineColor[2]=1;
+      break;
+    case BROWN:
+      lineColor[0]=0.5;
+      lineColor[1]=0.2;
+      lineColor[2]=0;
+      break;
+    case YELLOW:
+      lineColor[0]=1;
+      lineColor[1]=1;
+      lineColor[2]=0;
+      break;
+    case GRAY:
+      lineColor[0]=0.5;
+      lineColor[1]=0.5;
+      lineColor[2]=0.5;
+      break;
+    case ORANGE:
+      lineColor[0]=1;
+      lineColor[1]=0.5;
+      lineColor[2]=0;
+      break;
+ 
+    case GOLD:
+      lineColor[0]=1;
+      lineColor[1]=0.85;
+      lineColor[2]=0;
+      break;
+    case BEIGE:
+      lineColor[0]=0.95;
+      lineColor[1]=0.95;
+      lineColor[2]=0.85;
+      break;
+	}
+}	
+
+void fillColorMenuEvents(int option){
+	
+	switch(option){
+    
+    case WHITE:
+      fillColor[0]=1;
+      fillColor[1]=1;
+      fillColor[2]=1;
+      break;
+ 
+    case BLACK:
+      fillColor[0]=0;
+      fillColor[1]=0;
+      fillColor[2]=0;
+      break;
+ 
+    case RED:
+      fillColor[0]=1;
+      fillColor[1]=0;
+      fillColor[2]=0;
+      break;
+      
+    case DARK_GREEN:
+      fillColor[0]=0;
+      fillColor[1]=0.5;
+      fillColor[2]=0;
+      break;
+ 
+    case LIGHT_GREEN:
+      fillColor[0]=0;
+      fillColor[1]=1;
+      fillColor[2]=0;
+      break;
+ 
+    case BLUE:
+      fillColor[0]=0;
+      fillColor[1]=0;
+      fillColor[2]=1;
+      break;
+ 	case AQUA:
+      fillColor[0]=0;
+      fillColor[1]=1;
+      fillColor[2]=1;
+      break;
+
+    case PINK:
+      fillColor[0]=1;
+      fillColor[1]=0;
+      fillColor[2]=1;
+      break;
+ 
+    case SOFT_PINK:
+      fillColor[0]=1;
+      fillColor[1]=0.8;
+      fillColor[2]=0.9;
+      break;
+    case PURPLE:
+      fillColor[0]=0.5;
+      fillColor[1]=0;
+      fillColor[2]=1;
+      break;
+
+    case BROWN:
+      fillColor[0]=0.5;
+      fillColor[1]=0.2;
+      fillColor[2]=0;
+      break;
+ 
+    case YELLOW:
+      fillColor[0]=1;
+      fillColor[1]=1;
+      fillColor[2]=0;
+      break;
+    case GRAY:
+      fillColor[0]=0.5;
+      fillColor[1]=0.5;
+      fillColor[2]=0.5;
+      break;
+ 
+    case ORANGE:
+      fillColor[0]=1;
+      fillColor[1]=0.5;
+      fillColor[2]=0;
+      break;
+ 
+    case GOLD:
+      fillColor[0]=1;
+      fillColor[1]=0.85;
+      fillColor[2]=0;
+      break;
+    case BEIGE:
+      fillColor[0]=0.95;
+      fillColor[1]=0.95;
+      fillColor[2]=0.85;
+      break;
+	}
+}	
 	
 int main(int argc, char** argv) {
 	glutInit(&argc, argv);
