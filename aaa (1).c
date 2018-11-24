@@ -9,16 +9,36 @@
 //#include <windows.h>
 
 #define POLYGON 0
-#define EXIT 1
-#define LINECOLOR 2
-#define FILLCOLOR 3
+#define CLIPPING 1
+#define EXTRUDE 2
+#define EXIT 3
+#define LINECOLOR 4
+#define FILLCOLOR 5
+
 
 #define WIDTH 600
 #define HEIGHT 500
 #define one 1
 #define EP 0.000001
 
-int ACTION, MAINMENU, LINE_COLOR, FILL_COLOR;
+//LINE_COLOR & FILL_COLOR menu defines
+#define WHITE 1         //glColor3f(1, 1, 1);
+#define BLACK 2      	//glColor3f(0, 0, 0);
+#define RED 3           //glColor3f(1, 0, 0);
+#define DARK_GREEN 4  	//glColor3f(0, 0.5, 0);
+#define LIGHT_GREEN 5 	//glColor3f(0, 1, 0);
+#define BLUE 6     		//glColor3f(0, 0, 1);
+#define AQUA 7   		//glColor3f(0, 1, 1);
+#define PINK 8    		//gcColor3f(1, 0, 1);
+#define SOFT_PINK 9 	//glColor3f(1, 0.8, 0.9);
+#define PURPLE 10  		//glColor3f(0.5, 0, 1);
+#define BROWN 11   		//glColor3f(0.5, 0.2, 0);
+#define YELLOW 12  		//glColor3f(1, 1, 0);
+#define GRAY 13    		//glColor3f(0.5, 0.5, 0.5);
+#define ORANGE 14  		//glColor3f(1, 0.5, 0);
+#define GOLD 15  		//glColor3f(1, 0.85, 0);
+#define BEIGE 16 		//glColor3f(0.95, 0.95, 0.85);
+
 int window, polygons, w, h, yiot;;
 int drawingstopped = 0;
 int k = 0;
@@ -372,37 +392,68 @@ void processMenuEvents(int option) {
 			drawingstopped = 0;	
 			glutMouseFunc(mouse);
 			break; 
+		case CLIPPING :
+        	break;	
+        case EXTRUDE :
+        	break;	
         case EXIT :
         	exit(0);
         	break;	
-        case LINECOLOR :
-        	break;
-        case FILLCOLOR :
-        	break;
 	}
 }
 
 void createGLUTMenus() {
 
-	int ACTION;
-	int MAINMENU;
-	ACTION = glutCreateMenu(processMenuEvents);
+	int ACTION, LINE_COLOR, FILL_COLOR, MAINMENU;
 	
-	glutAddMenuEntry("Polygon", POLYGON);
-	glutAddMenuEntry("Exit", EXIT);
+	ACTION = glutCreateMenu(processMenuEvents);	
+	glutAddMenuEntry("Polygon", POLYGON);		/*** Create the ***/
+	glutAddMenuEntry("Exit", EXIT);				/*** subMenus' choises ***/
+	
 	LINE_COLOR = glutCreateMenu(processMenuEvents);
+	glutAddMenuEntry("White", 1);    
+  	glutAddMenuEntry("Black", 2);
+  	glutAddMenuEntry("Red", 3);
+  	glutAddMenuEntry("Dark Green", 4);
+  	glutAddMenuEntry("Light Green", 5);
+  	glutAddMenuEntry("Blue", 6);
+  	glutAddMenuEntry("Aqua", 7);
+  	glutAddMenuEntry("Pink", 8);
+  	glutAddMenuEntry("Soft Pink", 9);
+  	glutAddMenuEntry("Purple", 10);
+  	glutAddMenuEntry("Brown", 11);
+  	glutAddMenuEntry("Yellow", 12);
+  	glutAddMenuEntry("Gray", 13);
+  	glutAddMenuEntry("Orange", 14);
+  	glutAddMenuEntry("Gold", 15);
+  	glutAddMenuEntry("Beige", 16);
+	
 	FILL_COLOR = glutCreateMenu(processMenuEvents);
-	// create the menu and tell glut that "processMenuEvents"
-	//  will handle the events
+	glutAddMenuEntry("White", 1);    
+  	glutAddMenuEntry("Black", 2);
+  	glutAddMenuEntry("Red", 3);
+  	glutAddMenuEntry("Dark Green", 4);
+  	glutAddMenuEntry("Light Green", 5);
+  	glutAddMenuEntry("Blue", 6);
+  	glutAddMenuEntry("Aqua", 7);
+  	glutAddMenuEntry("Pink", 8);
+  	glutAddMenuEntry("Soft Pink", 9);
+  	glutAddMenuEntry("Purple", 10);
+  	glutAddMenuEntry("Brown", 11);
+  	glutAddMenuEntry("Yellow", 12);
+  	glutAddMenuEntry("Gray", 13);
+  	glutAddMenuEntry("Orange", 14);
+  	glutAddMenuEntry("Gold", 15);
+  	glutAddMenuEntry("Beige", 16);
+	
+	/**** create the menu and tell glut that "processMenuEvents" will handle the events****/
 	MAINMENU = glutCreateMenu(processMenuEvents);
-	//add entries to our menu
+	/**** add entries to our menu ****/
 	glutAddSubMenu("Action", ACTION);
-	glutAddMenuEntry("Line Color", LINE_COLOR);
-	glutAddMenuEntry("Fill Color", FILL_COLOR);
+	glutAddSubMenu("Line Color", LINE_COLOR);
+	glutAddSubMenu("Fill Color", FILL_COLOR);
 
-
-	// attach the menu to the right button
-	glutAttachMenu(GLUT_RIGHT_BUTTON);
+	glutAttachMenu(GLUT_RIGHT_BUTTON);	/**** attach the menu to the right button ****/
 }
 	
 int main(int argc, char** argv) {
@@ -429,3 +480,8 @@ int main(int argc, char** argv) {
 	kai allou ta vazoume sti lista */
 
 }
+
+
+
+
+
