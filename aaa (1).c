@@ -40,7 +40,6 @@
 
 typedef struct point{
 	int x, y;
-	char code[4];
 }point;
 
 typedef struct polygon{
@@ -62,7 +61,7 @@ void fillColorMenuEvents(int option);
 
 int window, polygons, w, h, yiot;
 int drawingstopped = 0;
-int clippingMode = 0;
+
 int clippoint = 0;
 int k = 0;
 int numofPol = 0;
@@ -70,7 +69,9 @@ int numofClipped = 0;
 int new_vertex;
 float lineColor[] = {0.0, 0.0, 0.0};	/*** Default line color BLACK ***/
 float fillColor[] = {0.0, 1.0, 0.0};	/*** Default color for triangles GREEN ***/
-bool letsTriangle = false;
+bool clippingMode = false;
+bool normalMode = true;
+bool triangleMode = false;
 
 point new_point;
 polygon allPolygons [100];
@@ -80,23 +81,20 @@ point clipper[4];		//for Clipping
 polygon clippedPolygons [100];
 
 
-// Returns x-value of point of intersectipn of two 
-// lines 
+// Returns x-value of point of intersectipn of two lines 
 int x_intersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4) { 
     int num = (x1*y2 - y1*x2) * (x3-x4) - (x1-x2) * (x3*y4 - y3*x4); 
     int den = (x1-x2) * (y3-y4) - (y1-y2) * (x3-x4); 
     return num/den; 
 } 
   
-// Returns y-value of point of intersectipn of 
-// two lines 
+// Returns y-value of point of intersectipn of two lines 
 int y_intersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4) { 
     int num = (x1*y2 - y1*x2) * (y3-y4) - (y1-y2) * (x3*y4 - y3*x4); 
     int den = (x1-x2) * (y3-y4) - (y1-y2) * (x3-x4); 
     return num/den; 
 } 
-// This functions clips all the edges w.r.t one clip 
-// edge of clipping area 
+// This functions clips all the edges w.r.t one clip edge of clipping area 
 polygon clip (polygon myPolygon, int x1, int y1, int x2, int y2){
 	polygon newPolygon;
 	int allPoints = myPolygon.howmany;
@@ -168,12 +166,12 @@ void doClipping (polygon allPolygons[], point clipper[]){
 float Area(polygon myPolygon){
 
 	int n = myPolygon.howmany;
-	float a =0;
+	float a =0.0f;
 	int p, q;
 	for (p=n-1, q=0; q<n; p=q++){
 		a += myPolygon.vertex[p].x * myPolygon.vertex[q].y - myPolygon.vertex[q].x * myPolygon.vertex[p].y ;
 	}
-	return a*0.5;
+	return (a*0.5);
 
 }
 
@@ -304,6 +302,7 @@ bool Process(polygon myPolygon, int eachpol){
 
 void initGL(){
   	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
+  	glClear( GL_COLOR_BUFFER_BIT );
 }
 
 void window_reshape(int width, int height){
@@ -321,10 +320,10 @@ void mouse(int button, int state, int x, int y) {
 		
 		if (clippingMode){
 			if (clippoint>=4){
-				clipper[1].x = clipper[0].x;
-				clipper[1].y = clipper[2].y;
-				clipper[3].x = clipper[2].x;
-				clipper[3].y = clipper[0].y;
+				clipper[1].x = clipper[2].x;
+				clipper[1].y = clipper[0].y;
+				clipper[3].x = clipper[0].x;
+				clipper[3].y = clipper[2].y;
 				doClipping(allPolygons, clipper);
 				glutPostRedisplay();
     			return;	
@@ -344,16 +343,16 @@ void mouse(int button, int state, int x, int y) {
 			printf("Korifes %d\n", allPolygons[numofPol].howmany);
 	
 			//Detach right click from menu so can stop selecting points
-			glutDetachMenu(GLUT_RIGHT_BUTTON);
+			//glutDetachMenu(GLUT_RIGHT_BUTTON);
 		}
+		glutDetachMenu(GLUT_RIGHT_BUTTON);
 		
 	}
 	
 	if ( button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN ){ //right click to finish drawing a polygon
 		drawingstopped = 1;
 		
-		glutAttachMenu(GLUT_RIGHT_BUTTON); //attach right click to menu again
-		//numofPol++;	
+		glutAttachMenu(GLUT_RIGHT_BUTTON); //attach right click to menu again	
 		glutPostRedisplay();
 		Process(allPolygons[numofPol], numofPol);
 		numofPol++;
@@ -369,16 +368,19 @@ void keyboard(unsigned char key, int x, int y) {
          exit(0);
          break;
       case 'T':
-      	letsTriangle = !letsTriangle;
+      	normalMode = !normalMode;
+      	triangleMode = !triangleMode;
+      	printf("TRUE\n");
 		glutPostRedisplay();
       	break;
    }
 }
 
 void drawLines(){
+	printf("drawlines");
 	int j=0;
 	int z;
-	for (z = 0; z <= numofPol; z++){
+	for (z = 0; z <=numofPol; z++){
 		if (allPolygons[z].howmany > 1){
 			glColor3f(allPolygons[z].color[0], allPolygons[z].color[1], allPolygons[z].color[2]);
 			glLineWidth(1);
@@ -425,14 +427,11 @@ void drawTriangles(){
 		count = result[i].howmany / 3;
 		printf("POSA TRIGWNA %d KORIFES %d\n", count, result[i].howmany );
 		
-		glColor3f(1.0, 0.0, 0.0);
+		glColor3f(0.0, 1.0, 0.0);
 		glLineWidth(1);
-		
 		glBegin(GL_LINES);
 		
-		for (j = 0; j < count; ++j){
-			printf("for draw\n");
-			
+		for (j = 0; j <= count; ++j){
 			glVertex2f(result[i].vertex[j*3].x, h-result[i].vertex[j*3].y);
 			glVertex2f(result[i].vertex[j*3+1].x, h-result[i].vertex[j*3+1].y);
 
@@ -444,7 +443,6 @@ void drawTriangles(){
 		}
 		glEnd();
 	}
-
 }
 
 bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4){
@@ -474,19 +472,23 @@ void display(void) {
 	
 	glutSwapBuffers();
     glClear( GL_COLOR_BUFFER_BIT );
-
     glMatrixMode( GL_PROJECTION );
     glLoadIdentity();
     glOrtho(0,w,0,h,-1,1);
     glMatrixMode( GL_MODELVIEW );
     glLoadIdentity();
 
-    if (letsTriangle){
-    	printf("TRIANGLE DISPLAY \n");
+    if (triangleMode){ 	
     	drawTriangles();
     }
     
-    drawLines();
+    if (clippingMode){
+    	
+	}
+    
+    if (normalMode){
+    	drawLines();
+	}
     
 	glFlush();
 	
@@ -496,6 +498,7 @@ void processMenuEvents(int option) {
 
 	switch (option) {
 		case POLYGON :
+			normalMode = true;
 			allPolygons[numofPol].color[0] = lineColor[0];
 			allPolygons[numofPol].color[1] = lineColor[1];
 			allPolygons[numofPol].color[2] = lineColor[2];
@@ -503,7 +506,8 @@ void processMenuEvents(int option) {
 			glutMouseFunc(mouse);
 			break; 
 		case CLIPPING :
-			clippingMode = 1;
+			clippingMode = true;
+			normalMode = false;
 			glutMouseFunc(mouse);
         	break;	
         case EXTRUDE :
@@ -777,7 +781,6 @@ int main(int argc, char** argv) {
 
 	glutMainLoop(); 
 	return 1;
-	
 	/*  glNewList(polygons, GL_COMPILE);, 
 	allou sxediasoyme, allou kaloume sxediasi
 	kai allou ta vazoume sti lista */
