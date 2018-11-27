@@ -46,6 +46,7 @@
 
 typedef struct point{
 	int x, y;
+	int realpos; //for INTER
 }point;
 
 typedef struct polygon{
@@ -54,8 +55,14 @@ typedef struct polygon{
 	float color[3];	
 }polygon;
 
+typedef struct inter{
+	point vertex [100];
+	int howmany;
+}inter;
+
 bool inside(point mypoint, int side);
 polygon clip (polygon myPolygon);
+inter countInter(polygon myPolygon, point clipper[], int side);
 bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
 float Area(polygon myPolygon);
 bool isItInside(float Ax, float Ay, float Bx, float By, float Cx, float Cy, float Px, float Py);
@@ -91,6 +98,97 @@ polygon result[100];		//for Triangle
 point clipper[4];		//for Clipping
 polygon clippedPolygons [100];
 
+inter Sort( inter I, int n, int side){	//sort auksousa seira
+   int i, j; 
+   for (i = 0; i < n-1; i++){
+       // Last i elements are already in place    
+       for (j = 0; j < n-i-1; j++){
+       		if (side%2==0){		// BOTTOM OR TOP
+       			if (I.vertex[j].y < I.vertex[j+1].y){	//sugkrinw y (anapoda)
+       				point tmp;
+       				tmp = I.vertex[j];
+       				I.vertex[j] = I.vertex[j+1];	//ekana swsta swap?
+       				I.vertex[j+1] = tmp;
+           		}
+			}else{
+				if (I.vertex[j].x > I.vertex[j+1].x){	//sygkrinw x
+           			point tmp;
+       				tmp = I.vertex[j];
+       				I.vertex[j] = I.vertex[j+1];	//ekana swsta swap?
+       				I.vertex[j+1] = tmp;
+           		}
+			}
+           	
+    	}
+	}
+	return I;
+}
+
+polygon createPol (polygon myPolygon, int pos1, int pos2){	//create new pol apo point pos1 mexri pos2
+	polygon newPolygon;
+	int k;
+	for (int i=0; i<myPolygon.howmany; i++){
+		k = pos1+i%myPolygon.howmany;
+		newPolygon.vertex[newPolygon.howmany] = myPolygon.vertex[k];
+		newPolygon.howmany++;
+		if (k==pos2){
+			break;
+		}
+	}
+	return newPolygon;
+}
+
+void checkClip(polygon myPolygon, point clipper[]){
+	int j;
+	
+	bool didyoucreate = false;
+	for (j=0; j<4; j++){				// gia kathe pleura tou clipper
+		inter temnomena;
+		temnomena = countInter(myPolygon, clipper, j);	//krata ta temnomena
+		if (temnomena.howmany>2){				//an einai perissotera apo 2
+			temnomena = Sort(temnomena,temnomena.howmany, j);		//taksinomise ta  se auksousa
+			for (int z=1; z<temnomena.howmany-1; z+=2){					//gia kathe dyada (1-3,3-5 etc)
+				polygon nPolygon;									
+				if (temnomena.vertex[z].realpos + 1 == temnomena.vertex[z+1].realpos){	// an einai sinexomena real me to epomeno
+					nPolygon = createPol(myPolygon, temnomena.vertex[z-1].realpos,  temnomena.vertex[z].realpos ); //ftiakse new
+					clippedPolygons[numofClipped] = nPolygon;					//kai valto sta clipped
+					numofClipped++;					
+					didyoucreate = true;
+				}
+			}	
+		}
+	}
+	if (didyoucreate){
+		printf("did you create\n");
+		return;
+	}
+	clippedPolygons[numofClipped] = myPolygon;
+	numofClipped++;
+	return;
+}
+
+inter countInter(polygon myPolygon, point clipper[], int side){ //return ta temnomena simeia uparxoun
+	inter temnomena;
+	
+	if (side==0 || side==2){
+		for (int i=0; i<myPolygon.howmany; i++){
+			if (myPolygon.vertex[i].y == clipper[side].y){
+				temnomena.vertex[temnomena.howmany] = myPolygon.vertex[i];
+				temnomena.vertex[temnomena.howmany].realpos = i;
+				temnomena.howmany++;	
+			}
+		}
+	}else{
+		for (int i=0; i<myPolygon.howmany; i++){
+			if (myPolygon.vertex[i].x == clipper[side].x){
+				temnomena.vertex[temnomena.howmany] = myPolygon.vertex[i];
+				temnomena.vertex[temnomena.howmany].realpos = i;
+				temnomena.howmany++;
+			}
+		}	
+	}
+	return temnomena;
+}
 // Returns value of point of intersectipn of two lines 
 point intersectPoint(point a, point b, point c, point d) { 
 	int x1 = a.x;
@@ -118,23 +216,23 @@ bool inside(point mypoint, int side) {
 
 	if (side==BOTTOM){		//bottom line
 	//	printf("117 se inside\n");
-		if (mypoint.y < clipper[side].y ){
+		if (mypoint.y <= clipper[side].y ){
 			return true;
 		}
 	}
 	if(side==LEFT){			//left line
-		if (mypoint.x > clipper[side].x ){
+		if (mypoint.x >= clipper[side].x ){
 		//	printf("mypoint.x %d > %d clipper[side].x \n",mypoint.x, clipper[side].x);
 			return true;
 		}
 	}
 	if(side==TOP){			//top line
-		if (mypoint.y > clipper[side].y ){
+		if (mypoint.y >= clipper[side].y ){
 			return true;
 		}
 	}
 	if(side==RIGHT){		//right line
-		if (mypoint.x < clipper[side].x ){
+		if (mypoint.x <= clipper[side].x ){
 			return true;
 		}
 	}
@@ -142,16 +240,13 @@ bool inside(point mypoint, int side) {
 }
 // This functions clips all the edges w.r.t one clip edge of clipping area 
 polygon clip (polygon myPolygon){
-
 	int j, i, k;
-
 	for (j = 0; j <4; j++){
-		
 		int allPoints = myPolygon.howmany;
 		int new_points =0;
 		polygon newPolygon;
 		newPolygon.howmany = 0;
-
+	
 		for (i = 0; i < allPoints; i++){
 			k = (i+1)%allPoints;
 			point p1 = myPolygon.vertex[i];
@@ -162,11 +257,12 @@ polygon clip (polygon myPolygon){
 				newPolygon.vertex[new_points] = p2;
 				newPolygon.howmany ++;
 				new_points++;
-			}else if ( inside(p1, j) && !inside(p2, j) ){ // to prwto eswteriko
+			}else if ( inside(p1, j) && !inside(p2, j) ){ // to prwto eswteriko 2o ekswteriko
 				/* keep the I */
 				newPolygon.vertex[new_points] = intersectPoint (p1, p2, clipper[j], clipper[(j+1)%4]);
 				newPolygon.howmany ++;
 				new_points++;
+				// 	//add one I
 			}else if ( !inside(p1, j) && !inside(p2, j)){ // 2 ekswterika
 				/* none */
 			}else if ( !inside(p1, j) && inside(p2, j)){
@@ -180,11 +276,14 @@ polygon clip (polygon myPolygon){
 				new_points++;
 			}else{
 				/* do nothing */
-			}
-			
+			}	
 		}
+			
 		myPolygon = newPolygon;
-		
+	}
+
+	if (myPolygon.howmany <3){
+		myPolygon.howmany ==0;
 	}
 	return myPolygon;
 }
@@ -254,6 +353,7 @@ bool Process(polygon myPolygon, int eachpol){
 	
 	int n = myPolygon.howmany;		///EDWWWWWWWWW
 	int v;
+	result[eachpol].howmany = 0;
 	printf("Process how many%d \n", myPolygon.howmany);
 	if (n<3){
 		return false;
@@ -340,7 +440,6 @@ void mouse(int button, int state, int x, int y) {
 		glutPostRedisplay();
     	return;
 	}
-	
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
 		
 		if (clippingMode){
@@ -360,9 +459,18 @@ void mouse(int button, int state, int x, int y) {
 				clipper[3].y = clipper[2].y;
 
 				int i;
+				
+				memset(result, 0, 100);	//delete ta trigwna
+
 				for (i=0; i<numofPol; i++){
-					allPolygons[i] = clip(allPolygons[i]);
+					allPolygons[i] = clip(allPolygons[i]);	//antikathista ta polugwna me ta kommena
+					Process(allPolygons[i], i);	//trigwnopoihsh ksana gia kathe neo
 				}
+				for (i=0; i<numofClipped; i++){
+					allPolygons[numofPol+i] = clippedPolygons[i];	//prosthetei ta extra
+					Process(allPolygons[numofPol+i], numofPol+i);	//trigwnopoihsh ksana gia kathe neo											//auta pou itan dipla
+				}
+				numofPol += numofClipped;
 				normalMode = false;
 				clipperDeclared = true;
 				glutPostRedisplay();
@@ -417,6 +525,7 @@ void drawLines(){
 	int k=0;
 	for (z = 0; z <=numofPol; z++){
 		if (allPolygons[z].howmany > 1){
+			printf("allPolygons[z].howmany %d \n",allPolygons[z].howmany);
 			glColor3f(allPolygons[z].color[0], allPolygons[z].color[1], allPolygons[z].color[2]);
 			glLineWidth(1);
 			glBegin(GL_LINES);
@@ -437,8 +546,17 @@ void drawLines(){
         		glVertex2f( allPolygons[z].vertex[k+1].x , h-allPolygons[z].vertex[k+1].y);	
         		k++;
 			}
+
 			k=0;
 			if(drawingstopped==1 || z<numofPol){
+				//for (j = 1; j <= (yiot-3); ++j){
+				//	if(LineIntersect(allPolygons[z].vertex[0].x, allPolygons[z].vertex[0].y, allPolygons[z].vertex[yiot-1].x, allPolygons[z].vertex[yiot-1].y, allPolygons[z].vertex[j].x, allPolygons[z].vertex[j].y, allPolygons[z].vertex[j+1].x, allPolygons[z].vertex[j+1].y)){
+				//			allPolygons[z].howmany = 0; // delete the vertexes
+				//			glutPostRedisplay();
+				//			glEnd();
+				//			return;
+				//		}
+			//	}
 				glVertex2f( allPolygons[z].vertex[yiot-1].x , h-allPolygons[z].vertex[yiot-1].y);
 				glVertex2f(allPolygons[z].vertex[0].x, h-allPolygons[z].vertex[0].y);
 			
@@ -503,13 +621,13 @@ bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y
 
 void display(void) {
 	
-	glutSwapBuffers();
+	//glutSwapBuffers();
     glClear( GL_COLOR_BUFFER_BIT );
     glMatrixMode( GL_PROJECTION );
     glLoadIdentity();
     glOrtho(0,w,0,h,-1,1);
-    glMatrixMode( GL_MODELVIEW );
-    glLoadIdentity();
+    //glMatrixMode( GL_MODELVIEW );
+    //glLoadIdentity();
 
     if (triangleMode){ 	
     	drawTriangles();
