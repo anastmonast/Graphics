@@ -6,8 +6,6 @@
 #include <GL/glut.h> 
 #include <stdbool.h>
 #include <stdlib.h>
-#include <iostream>
-//#include <windows.h>
 
 #define POLYGON 	0
 #define CLIPPING 	1
@@ -25,24 +23,23 @@
 #define TOP 	2
 #define RIGHT 	3
 
-//LINE_COLOR & FILL_COLOR menu defines
+/***************** Colors *****************/
 #define WHITE		1	//glColor3f(1, 1, 1);
 #define BLACK 		2  	//glColor3f(0, 0, 0);
 #define RED 		3 	//glColor3f(1, 0, 0);
 #define DARK_GREEN 	4  	//glColor3f(0, 0.5, 0);
 #define LIGHT_GREEN 5 	//glColor3f(0, 1, 0);
-#define BLUE 		6   //glColor3f(0, 0, 1);
-#define AQUA 		7   //glColor3f(0, 1, 1);
+#define DARK_BLUE	6   //glColor3f(0, 0, 1);
+#define LIGHT_BLUE 	7   //glColor3f(0, 1, 1);
 #define PINK 		8   //gcColor3f(1, 0, 1);
-#define SOFT_PINK 	9 	//glColor3f(1, 0.8, 0.9);
+#define KHAKI 		9 	//glColor3f(0.62, 0.62, 0.37);
 #define PURPLE 		10  //glColor3f(0.5, 0, 1);
 #define BROWN 		11  //glColor3f(0.5, 0.2, 0);
 #define YELLOW 		12  //glColor3f(1, 1, 0);
 #define GRAY 		13  //glColor3f(0.5, 0.5, 0.5);
 #define ORANGE 		14  //glColor3f(1, 0.5, 0);
 #define GOLD 		15  //glColor3f(1, 0.85, 0);
-#define BEIGE 		16 	//glColor3f(0.95, 0.95, 0.85);
-
+#define SILVER 		16 	//glColor3f(0.90, 0.91, 0.98);
 
 typedef struct point{
 	int x, y;
@@ -57,6 +54,7 @@ typedef struct polygon{
 	
 }polygon;
 
+/******************  FUNCTIONS DECLARATION ******************/
 bool inside(point mypoint, int side);
 polygon clip (polygon myPolygon);
 polygon countInter(polygon myPolygon, point clipper[], int side);
@@ -72,11 +70,10 @@ void createGLUTMenus();
 void lineColorMenuEvents(int option);
 void fillColorMenuEvents(int option);
 
+/****************** GLOBALS ******************/
 int window, polygons, w, h, yiot;
 int drawingstopped = 0;
-
 int clippoint = 0;
-int k = 0;
 int numofPol = 0;
 int numofClipped = 0;
 int new_vertex;
@@ -89,10 +86,12 @@ bool clipperDeclared = false;
 bool normalMode = true;
 
 point new_point;
-polygon allPolygons [80];
-polygon result[100];		//for Triangle
-point clipper[4];		//for Clipping
-polygon clippedPolygons [100];
+polygon allPolygons [100];
+polygon result[100];			/*** for TRIANGLE ***/
+point clipper[4];				/*** Clipping area ***/
+polygon clippedPolygons [120];
+
+/************************* CLIPPING *************************/
 
 polygon Sort( polygon I, int n, int side){	//sort auksousa seira
    int i, j; 
@@ -127,7 +126,7 @@ polygon Sort( polygon I, int n, int side){	//sort auksousa seira
 	return I;
 }
 
-polygon createPol (polygon myPolygon, int pos1, int pos2){	//create new pol apo point pos1 mexri pos2
+polygon createPol (polygon myPolygon, int pos1, int pos2){	//create new polygon from point pos1 to pos2
 	polygon newPolygon;
 	newPolygon.howmany = 0;
 	int k;
@@ -216,14 +215,12 @@ polygon countInter(polygon myPolygon, point clipper[], int side){ //return ta te
 	}
 	return temnomena;
 }
-// Returns value of point of intersectipn of two lines 
-point intersectPoint(point a, point b, point c, point d) { 
+
+point intersectPoint(point a, point b, point c, point d) { 	// Returns value of point of intersectipn of two lines 
 	int x1 = a.x;
 	int y1 = a.y;
-
 	int x2 = b.x;
 	int y2 = b.y;
-
 	int x3 = c.x;
 	int y3 = c.y;
 
@@ -241,24 +238,22 @@ point intersectPoint(point a, point b, point c, point d) {
 
 bool inside(point mypoint, int side) {
 
-	if (side==BOTTOM){		//bottom line
-	//	printf("117 se inside\n");
+	if (side==BOTTOM){					// bottom line
 		if (mypoint.y <= clipper[side].y ){
 			return true;
 		}
 	}
-	if(side==LEFT){			//left line
+	if(side==LEFT){						// left line
 		if (mypoint.x >= clipper[side].x ){
-		//	printf("mypoint.x %d > %d clipper[side].x \n",mypoint.x, clipper[side].x);
 			return true;
 		}
 	}
-	if(side==TOP){			//top line
+	if(side==TOP){						// top line
 		if (mypoint.y >= clipper[side].y ){
 			return true;
 		}
 	}
-	if(side==RIGHT){		//right line
+	if(side==RIGHT){					// right line
 		if (mypoint.x <= clipper[side].x ){
 			return true;
 		}
@@ -321,6 +316,7 @@ polygon clip (polygon myPolygon){
 	return myPolygon;
 }
 
+/************************* TRIANGULATION *************************/
 float Area(polygon myPolygon){
 
 	int n = myPolygon.howmany;
@@ -457,6 +453,7 @@ bool Process(polygon myPolygon, int eachpol){
 
 }
 
+/************************* WINDOW-MOUSE-KEYBOARD HANDLE *************************/
 void initGL(){
   	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
   	glClear( GL_COLOR_BUFFER_BIT );
@@ -467,13 +464,11 @@ void window_reshape(int width, int height){
 }
 
 void mouse(int button, int state, int x, int y) {
-	
 	if ( (drawingstopped && !clippingMode) || clipperDeclared ){ 
 		glutPostRedisplay();
     	return;
 	}
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
-		
 		if (clippingMode){
 			if (clippoint<2){
 				clipper[clippoint].x = x;		//Save top left corner first[0] and then right bottom[2]
@@ -484,12 +479,10 @@ void mouse(int button, int state, int x, int y) {
 				clipper[clippoint].x = x;		//Save top left corner first[0] and then right bottom[2]
 				clipper[clippoint].y = y;
 				printf("%d point saved\n", clippoint);
-				
 				clipper[1].x = clipper[2].x;
 				clipper[1].y = clipper[0].y;
 				clipper[3].x = clipper[0].x;
 				clipper[3].y = clipper[2].y;
-
 				int i;
 				memset(result, 0, 100);	//delete ta trigwna
 
@@ -549,11 +542,11 @@ void keyboard(unsigned char key, int x, int y) {
    }
 }
 
+/**************************** DRAWING ****************************/
 void drawLines(){
 	
-	int j=0;
-	int z;
-	int k=0;
+	int j=0;	int k=0;	int z;
+
 	for (z = 0; z <=numofPol; z++){
 		if (allPolygons[z].howmany > 1){
 			printf("allPolygons[z].howmany %d \n",allPolygons[z].howmany);
@@ -561,12 +554,13 @@ void drawLines(){
 			glLineWidth(2);
 			glBegin(GL_LINES);
 			
-			yiot = allPolygons[z].howmany;	//for each Polygon, all vertexes till new
+			yiot = allPolygons[z].howmany;				//check INTERSECT for all edges till new
 			while (k <yiot -1){
 				if (yiot>3){
 					for (j=0; j<(yiot-3); j++){
 						if(LineIntersect(allPolygons[z].vertex[yiot-2].x, allPolygons[z].vertex[yiot-2].y, allPolygons[z].vertex[yiot-1].x, allPolygons[z].vertex[yiot-1].y, allPolygons[z].vertex[j].x, allPolygons[z].vertex[j].y, allPolygons[z].vertex[j+1].x, allPolygons[z].vertex[j+1].y)){
 							allPolygons[z].howmany = 0; // delete the vertexes
+							numofPol--;
 							glutPostRedisplay();
 							glEnd();
 							return;
@@ -579,18 +573,18 @@ void drawLines(){
 			}
 
 			k=0;
-			if(drawingstopped==1 || z<numofPol){
+			if(drawingstopped==1 || z<numofPol){		// check and draw the last line
 				for (j = 1; j <= (yiot-3); ++j){
 					if(LineIntersect(allPolygons[z].vertex[0].x, allPolygons[z].vertex[0].y, allPolygons[z].vertex[yiot-1].x, allPolygons[z].vertex[yiot-1].y, allPolygons[z].vertex[j].x, allPolygons[z].vertex[j].y, allPolygons[z].vertex[j+1].x, allPolygons[z].vertex[j+1].y)){
-							allPolygons[z].howmany = 0; // delete the vertexes
+							allPolygons[z].howmany = 0; 
+							numofPol--;
 							glutPostRedisplay();
 							glEnd();
 							return;
 						}
 				}
 				glVertex2f( allPolygons[z].vertex[yiot-1].x , h-allPolygons[z].vertex[yiot-1].y);
-				glVertex2f(allPolygons[z].vertex[0].x, h-allPolygons[z].vertex[0].y);
-			
+				glVertex2f(allPolygons[z].vertex[0].x, h-allPolygons[z].vertex[0].y);	
 		    }
 		    glEnd();
 		}
@@ -689,8 +683,8 @@ void display(void) {
 	glutSwapBuffers();
 }	
 
+/**************************** MENU HANDLE ****************************/
 void processMenuEvents(int option) {
-
 	switch (option) {
 		case POLYGON :
 			normalMode = true;
@@ -722,27 +716,27 @@ void createGLUTMenus() {
 	int ACTION, LINE_COLOR, FILL_COLOR, MAINMENU;
 	
 	ACTION = glutCreateMenu(processMenuEvents);	
-	glutAddMenuEntry("Polygon", POLYGON);		/*** Create the ***/
-	glutAddMenuEntry("Clipping", CLIPPING);
-	glutAddMenuEntry("Exit", EXIT);				/*** subMenus' choises ***/
-	
+	glutAddMenuEntry("Polygon", POLYGON);		/*** Create the  subMenus' choises ***/
+	glutAddMenuEntry("Clipping", CLIPPING);		
+	glutAddMenuEntry("Exit", EXIT);				
+	/**** create the menu and tell glut that "lineColorMenuEvents" will handle the events ****/
 	LINE_COLOR = glutCreateMenu(lineColorMenuEvents);
 	glutAddMenuEntry("White", 1);    
   	glutAddMenuEntry("Black", 2);
   	glutAddMenuEntry("Red", 3);
   	glutAddMenuEntry("Dark Green", 4);
   	glutAddMenuEntry("Light Green", 5);
-  	glutAddMenuEntry("Blue", 6);
-  	glutAddMenuEntry("Aqua", 7);
+  	glutAddMenuEntry("Dark Blue", 6);
+  	glutAddMenuEntry("Light Blue", 7);
   	glutAddMenuEntry("Pink", 8);
-  	glutAddMenuEntry("Soft Pink", 9);
+  	glutAddMenuEntry("Khaki", 9);
   	glutAddMenuEntry("Purple", 10);
   	glutAddMenuEntry("Brown", 11);
   	glutAddMenuEntry("Yellow", 12);
   	glutAddMenuEntry("Gray", 13);
   	glutAddMenuEntry("Orange", 14);
   	glutAddMenuEntry("Gold", 15);
-  	glutAddMenuEntry("Beige", 16);
+  	glutAddMenuEntry("Silver", 16);
 	
 	FILL_COLOR = glutCreateMenu(fillColorMenuEvents);
 	glutAddMenuEntry("White", 1);    
@@ -750,17 +744,17 @@ void createGLUTMenus() {
   	glutAddMenuEntry("Red", 3);
   	glutAddMenuEntry("Dark Green", 4);
   	glutAddMenuEntry("Light Green", 5);
-  	glutAddMenuEntry("Blue", 6);
-  	glutAddMenuEntry("Aqua", 7);
+  	glutAddMenuEntry("Dark Blue", 6);
+  	glutAddMenuEntry("Light Blue", 7);
   	glutAddMenuEntry("Pink", 8);
-  	glutAddMenuEntry("Soft Pink", 9);
+  	glutAddMenuEntry("Khaki", 9);
   	glutAddMenuEntry("Purple", 10);
   	glutAddMenuEntry("Brown", 11);
   	glutAddMenuEntry("Yellow", 12);
   	glutAddMenuEntry("Gray", 13);
   	glutAddMenuEntry("Orange", 14);
   	glutAddMenuEntry("Gold", 15);
-  	glutAddMenuEntry("Beige", 16);
+  	glutAddMenuEntry("Silver", 16);
 	
 	/**** create the menu and tell glut that "processMenuEvents" will handle the events****/
 	MAINMENU = glutCreateMenu(processMenuEvents);
@@ -775,19 +769,16 @@ void createGLUTMenus() {
 void lineColorMenuEvents(int option){
 	
 	switch(option){
-    
     case WHITE:
       lineColor[0]=1;
       lineColor[1]=1;
       lineColor[2]=1;
       break;
- 
     case BLACK:
       lineColor[0]=0;
       lineColor[1]=0;
       lineColor[2]=0;
       break;
- 
     case RED:
       lineColor[0]=1;
       lineColor[1]=0;
@@ -803,12 +794,12 @@ void lineColorMenuEvents(int option){
       lineColor[1]=1;
       lineColor[2]=0;
       break;
-    case BLUE:
+    case DARK_BLUE:
       lineColor[0]=0;
       lineColor[1]=0;
       lineColor[2]=1;
       break;
- 	case AQUA:
+ 	case LIGHT_BLUE:
       lineColor[0]=0;
       lineColor[1]=1;
       lineColor[2]=1;
@@ -818,10 +809,10 @@ void lineColorMenuEvents(int option){
       lineColor[1]=0;
       lineColor[2]=1;
       break;
-    case SOFT_PINK:
-      lineColor[0]=1;
-      lineColor[1]=0.8;
-      lineColor[2]=0.9;
+    case KHAKI:
+      lineColor[0]=0.62;
+      lineColor[1]=0.62;
+      lineColor[2]=0.37;
       break;
     case PURPLE:
       lineColor[0]=0.5;
@@ -854,10 +845,10 @@ void lineColorMenuEvents(int option){
       lineColor[1]=0.85;
       lineColor[2]=0;
       break;
-    case BEIGE:
-      lineColor[0]=0.95;
-      lineColor[1]=0.95;
-      lineColor[2]=0.85;
+    case SILVER:
+      lineColor[0]=0.90;
+      lineColor[1]=0.91;
+      lineColor[2]=0.98;
       break;
 	}
 	
@@ -866,73 +857,62 @@ void lineColorMenuEvents(int option){
 }	
 
 void fillColorMenuEvents(int option){
-	
 	switch(option){
-    
     case WHITE:
       fillColor[0]=1;
       fillColor[1]=1;
       fillColor[2]=1;
       break;
- 
     case BLACK:
       fillColor[0]=0;
       fillColor[1]=0;
       fillColor[2]=0;
       break;
- 
     case RED:
       fillColor[0]=1;
       fillColor[1]=0;
       fillColor[2]=0;
       break;
-      
     case DARK_GREEN:
       fillColor[0]=0;
       fillColor[1]=0.5;
       fillColor[2]=0;
       break;
- 
     case LIGHT_GREEN:
       fillColor[0]=0;
       fillColor[1]=1;
       fillColor[2]=0;
       break;
- 
-    case BLUE:
+    case DARK_BLUE:
       fillColor[0]=0;
       fillColor[1]=0;
       fillColor[2]=1;
       break;
- 	case AQUA:
+ 	case LIGHT_BLUE:
       fillColor[0]=0;
       fillColor[1]=1;
       fillColor[2]=1;
       break;
-
     case PINK:
       fillColor[0]=1;
       fillColor[1]=0;
       fillColor[2]=1;
       break;
- 
-    case SOFT_PINK:
-      fillColor[0]=1;
-      fillColor[1]=0.8;
-      fillColor[2]=0.9;
+     case KHAKI:
+      fillColor[0]=0.62;
+      fillColor[1]=0.62;
+      fillColor[2]=0.37;
       break;
     case PURPLE:
       fillColor[0]=0.5;
       fillColor[1]=0;
       fillColor[2]=1;
       break;
-
     case BROWN:
       fillColor[0]=0.5;
       fillColor[1]=0.2;
       fillColor[2]=0;
       break;
- 
     case YELLOW:
       fillColor[0]=1;
       fillColor[1]=1;
@@ -943,22 +923,20 @@ void fillColorMenuEvents(int option){
       fillColor[1]=0.5;
       fillColor[2]=0.5;
       break;
- 
     case ORANGE:
       fillColor[0]=1;
       fillColor[1]=0.5;
       fillColor[2]=0;
       break;
- 
     case GOLD:
       fillColor[0]=1;
       fillColor[1]=0.85;
       fillColor[2]=0;
       break;
-    case BEIGE:
-      fillColor[0]=0.95;
-      fillColor[1]=0.95;
-      fillColor[2]=0.85;
+    case SILVER:
+      fillColor[0]=0.90;
+      fillColor[1]=0.91;
+      fillColor[2]=0.98;
       break;
 	}
 }	
@@ -970,7 +948,7 @@ int main(int argc, char** argv) {
 	glutInitWindowPosition(0, 0);
 	glutInitWindowSize(WIDTH, HEIGHT);
 	w = glutGet( GLUT_WINDOW_WIDTH );
-    h = glutGet( GLUT_WINDOW_HEIGHT );
+    	h = glutGet( GLUT_WINDOW_HEIGHT );
 	initGL();
 	glutReshapeFunc(window_reshape);
 	glutDisplayFunc(display);
@@ -979,5 +957,4 @@ int main(int argc, char** argv) {
 
 	glutMainLoop(); 
 	return 1;
-
 }
