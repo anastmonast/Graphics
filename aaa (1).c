@@ -154,7 +154,7 @@ void checkClip(polygon myPolygon, point clipper[]){
 		printf("temnomena: %d \n", temnomena.howmany);
 		if (temnomena.howmany>2){				//an einai perissotera apo 2
 			temnomena = Sort(temnomena,temnomena.howmany, j);		//taksinomise ta  se auksousa
-			for (int z=1; z<temnomena.howmany-1; z+=2){					//gia kathe dyada (1-2,3-4 etc)
+			for (int z=0; z<temnomena.howmany-1; z+=2){					//gia kathe dyada (1-2,3-4 etc)
 				polygon nPolygon;							
 				if (temnomena.vertex[z].realpos + 1 == temnomena.vertex[z+1].realpos){	// an einai sinexomena real me to epomeno
 					printf("temn1 %d temn2 %d \n", temnomena.vertex[z-1].realpos, temnomena.vertex[z].realpos );
@@ -168,9 +168,8 @@ void checkClip(polygon myPolygon, point clipper[]){
 						nPolygon.fillcolor[2] = myPolygon.fillcolor[2];	
 						clippedPolygons[numofClipped] = nPolygon;					//kai valto sta clipped
 						numofClipped++;
-					}
-						
-					nPolygon = createPol(myPolygon, temnomena.vertex[z+1].realpos,  temnomena.vertex[z+2].realpos );
+					}		
+					nPolygon = createPol(myPolygon, temnomena.vertex[z].realpos,  temnomena.vertex[z+1].realpos );
 					nPolygon.linecolor[0] = myPolygon.linecolor[0];
 					nPolygon.linecolor[1] = myPolygon.linecolor[1];
 					nPolygon.linecolor[2] = myPolygon.linecolor[2];
@@ -702,7 +701,7 @@ void processMenuEvents(int option) {
 			allPolygons[numofPol].fillcolor[1] = fillColor[1];
 			allPolygons[numofPol].fillcolor[2] = fillColor[2];
 			lineColor[0] = 0.0;		lineColor[1] = 0.0;		lineColor[2] = 0.0; /** Set default color BLACK **/
-			//fillColor[0] = 1.0;		fillColor[1] = 1.0;		fillColor[2] = 1.0; /** Set default color WHITE **/
+			fillColor[0] = 1.0;		fillColor[1] = 1.0;		fillColor[2] = 1.0; /** Set default color WHITE **/
 			drawingstopped = 0;	
 			glutMouseFunc(mouse);
 			break; 
@@ -980,8 +979,5 @@ int main(int argc, char** argv) {
 
 	glutMainLoop(); 
 	return 1;
-	/*  glNewList(polygons, GL_COMPILE);, 
-	allou sxediasoyme, allou kaloume sxediasi
-	kai allou ta vazoume sti lista */
 
 }
