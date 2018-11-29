@@ -52,7 +52,9 @@ typedef struct point{
 typedef struct polygon{
 	point vertex [100];
 	int howmany;
-	float color[3];	
+	float linecolor[3];
+	float fillcolor[3];
+	
 }polygon;
 
 typedef struct inter{
@@ -84,7 +86,7 @@ int numofPol = 0;
 int numofClipped = 0;
 int new_vertex;
 float lineColor[] = {0.0, 0.0, 0.0};	/*** Default line color BLACK ***/
-float fillColor[] = {0.0, 1.0, 0.0};	/*** Default color for triangles GREEN ***/
+float fillColor[] = {1.0, 1.0, 1.0};	/*** Default fill color WHITE ***/
 
 bool clippingMode = false;
 bool triangleMode = false;
@@ -162,9 +164,11 @@ void checkClip(polygon myPolygon, point clipper[]){
 				polygon nPolygon;									
 				if (temnomena.vertex[z].realpos + 1 == temnomena.vertex[z+1].realpos){	// an einai sinexomena real me to epomeno
 					printf("temn1 %d temn2 %d \n", temnomena.vertex[z-1].realpos, temnomena.vertex[z].realpos );
-					nPolygon = createPol(myPolygon, temnomena.vertex[z-1].realpos,  temnomena.vertex[z].realpos ); //ftiakse new
-					clippedPolygons[numofClipped] = nPolygon;					//kai valto sta clipped
-					numofClipped++;
+					if (z==1){
+						nPolygon = createPol(myPolygon, temnomena.vertex[z-1].realpos,  temnomena.vertex[z].realpos ); //ftiakse new
+						clippedPolygons[numofClipped] = nPolygon;					//kai valto sta clipped
+						numofClipped++;
+					}
 						
 					nPolygon = createPol(myPolygon, temnomena.vertex[z+1].realpos,  temnomena.vertex[z+2].realpos );
 					clippedPolygons[numofClipped] = nPolygon;
@@ -435,8 +439,7 @@ bool Process(polygon myPolygon, int eachpol){
 			}
 			count = 2*nv;
 		}
-	}
-
+	}	
 	free (V);
 
 	return true;
@@ -543,8 +546,8 @@ void drawLines(){
 	for (z = 0; z <=numofPol; z++){
 		if (allPolygons[z].howmany > 1){
 			printf("allPolygons[z].howmany %d \n",allPolygons[z].howmany);
-			glColor3f(allPolygons[z].color[0], allPolygons[z].color[1], allPolygons[z].color[2]);
-			glLineWidth(1);
+			glColor3f(allPolygons[z].linecolor[0], allPolygons[z].linecolor[1], allPolygons[z].linecolor[2]);
+			glLineWidth(2);
 			glBegin(GL_LINES);
 			
 			yiot = allPolygons[z].howmany;	//for each Polygon, all vertexes till new
@@ -566,23 +569,20 @@ void drawLines(){
 
 			k=0;
 			if(drawingstopped==1 || z<numofPol){
-				//for (j = 1; j <= (yiot-3); ++j){
-				//	if(LineIntersect(allPolygons[z].vertex[0].x, allPolygons[z].vertex[0].y, allPolygons[z].vertex[yiot-1].x, allPolygons[z].vertex[yiot-1].y, allPolygons[z].vertex[j].x, allPolygons[z].vertex[j].y, allPolygons[z].vertex[j+1].x, allPolygons[z].vertex[j+1].y)){
-				//			allPolygons[z].howmany = 0; // delete the vertexes
-				//			glutPostRedisplay();
-				//			glEnd();
-				//			return;
-				//		}
-			//	}
+				for (j = 1; j <= (yiot-3); ++j){
+					if(LineIntersect(allPolygons[z].vertex[0].x, allPolygons[z].vertex[0].y, allPolygons[z].vertex[yiot-1].x, allPolygons[z].vertex[yiot-1].y, allPolygons[z].vertex[j].x, allPolygons[z].vertex[j].y, allPolygons[z].vertex[j+1].x, allPolygons[z].vertex[j+1].y)){
+							allPolygons[z].howmany = 0; // delete the vertexes
+							glutPostRedisplay();
+							glEnd();
+							return;
+						}
+				}
 				glVertex2f( allPolygons[z].vertex[yiot-1].x , h-allPolygons[z].vertex[yiot-1].y);
 				glVertex2f(allPolygons[z].vertex[0].x, h-allPolygons[z].vertex[0].y);
 			
 		    }
 		    glEnd();
 		}
-		lineColor[0] = 0.0;	// Set to default again
-		lineColor[1] = 0.0;
-		lineColor[2] = 0.0;
 	}
 	
 }
@@ -607,9 +607,26 @@ void drawTriangles(){
 			glVertex2f(result[i].vertex[j*3+2].x, h-result[i].vertex[j*3+2].y);
 
 			glVertex2f(result[i].vertex[j*3+2].x, h-result[i].vertex[j*3+2].y);
-			glVertex2f(result[i].vertex[j*3].x, h-result[i].vertex[j*3].y);
+			glVertex2f(result[i].vertex[j*3].x, h-result[i].vertex[j*3].y);	
 		}
 		glEnd();
+		
+	}
+}
+
+void fillTriangles(){
+
+	int i, j, count;
+	for ( i = 0; i <numofPol; ++i){
+		count = result[i].howmany / 3;
+		for (j = 0; j <= count; ++j){
+			glBegin(GL_TRIANGLES);
+			glColor3f(allPolygons[i].fillcolor[0], allPolygons[i].fillcolor[1], allPolygons[i].fillcolor[2]);
+			glVertex2f(result[i].vertex[j*3].x, h-result[i].vertex[j*3].y);
+			glVertex2f(result[i].vertex[j*3+1].x, h-result[i].vertex[j*3+1].y);
+			glVertex2f(result[i].vertex[j*3+2].x, h-result[i].vertex[j*3+2].y);
+			glEnd();
+		}
 	}
 }
 
@@ -652,9 +669,11 @@ void display(void) {
     
     if (normalMode){
     	drawLines();
+    	fillTriangles();
 	} 
 	if (clipperDeclared){
 		drawLines();
+		//fillTriangles();
 	}
 	glFlush();
 	glutSwapBuffers();
@@ -665,9 +684,14 @@ void processMenuEvents(int option) {
 	switch (option) {
 		case POLYGON :
 			normalMode = true;
-			allPolygons[numofPol].color[0] = lineColor[0];
-			allPolygons[numofPol].color[1] = lineColor[1];
-			allPolygons[numofPol].color[2] = lineColor[2];
+			allPolygons[numofPol].linecolor[0] = lineColor[0];
+			allPolygons[numofPol].linecolor[1] = lineColor[1];
+			allPolygons[numofPol].linecolor[2] = lineColor[2];
+			allPolygons[numofPol].fillcolor[0] = fillColor[0];
+			allPolygons[numofPol].fillcolor[1] = fillColor[1];
+			allPolygons[numofPol].fillcolor[2] = fillColor[2];
+			lineColor[0] = 0.0;		lineColor[1] = 0.0;		lineColor[2] = 0.0; /** Set default color BLACK **/
+			//fillColor[0] = 1.0;		fillColor[1] = 1.0;		fillColor[2] = 1.0; /** Set default color WHITE **/
 			drawingstopped = 0;	
 			glutMouseFunc(mouse);
 			break; 
@@ -710,7 +734,7 @@ void createGLUTMenus() {
   	glutAddMenuEntry("Gold", 15);
   	glutAddMenuEntry("Beige", 16);
 	
-	FILL_COLOR = glutCreateMenu(processMenuEvents);
+	FILL_COLOR = glutCreateMenu(fillColorMenuEvents);
 	glutAddMenuEntry("White", 1);    
   	glutAddMenuEntry("Black", 2);
   	glutAddMenuEntry("Red", 3);
@@ -936,7 +960,7 @@ int main(int argc, char** argv) {
 	glutInitWindowPosition(50, 50);
 	glutInitWindowSize(500, 600);
 	w = glutGet( GLUT_WINDOW_WIDTH );
-    h = glutGet( GLUT_WINDOW_HEIGHT );
+    	h = glutGet( GLUT_WINDOW_HEIGHT );
 	initGL();
 	glutReshapeFunc(window_reshape);
 	glutDisplayFunc(display);
