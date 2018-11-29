@@ -104,21 +104,28 @@ inter Sort( inter I, int n, int side){	//sort auksousa seira
        // Last i elements are already in place    
        for (j = 0; j < n-i-1; j++){
        		if (side%2==0){		// BOTTOM OR TOP
-       			if (I.vertex[j].y < I.vertex[j+1].y){	//sugkrinw y (anapoda)
+       			if (I.vertex[j].x > I.vertex[j+1].x){	//sugkrinw x 
        				point tmp;
+       				int tmpreal;
        				tmp = I.vertex[j];
+       				tmpreal = I.vertex[j].realpos;
        				I.vertex[j] = I.vertex[j+1];	//ekana swsta swap?
+       				I.vertex[j].realpos = I.vertex[j+1].realpos;
        				I.vertex[j+1] = tmp;
+       				I.vertex[j+1].realpos = tmpreal;
            		}
 			}else{
-				if (I.vertex[j].x > I.vertex[j+1].x){	//sygkrinw x
+				if (I.vertex[j].y < I.vertex[j+1].y){	//sygkrinw y
            			point tmp;
+       				int tmpreal;
        				tmp = I.vertex[j];
+       				tmpreal = I.vertex[j].realpos;
        				I.vertex[j] = I.vertex[j+1];	//ekana swsta swap?
+       				I.vertex[j].realpos = I.vertex[j+1].realpos;
        				I.vertex[j+1] = tmp;
+       				I.vertex[j+1].realpos = tmpreal;
            		}
-			}
-           	
+			}	
     	}
 	}
 	return I;
@@ -126,42 +133,53 @@ inter Sort( inter I, int n, int side){	//sort auksousa seira
 
 polygon createPol (polygon myPolygon, int pos1, int pos2){	//create new pol apo point pos1 mexri pos2
 	polygon newPolygon;
+	newPolygon.howmany = 0;
 	int k;
-	for (int i=0; i<myPolygon.howmany; i++){
-		k = pos1+i%myPolygon.howmany;
+	printf("pos1 %d pos2 %d \n", pos1, pos2);
+	for (int i=0; i<=abs(pos1-pos2); i++){
+		k = (pos1+i)%myPolygon.howmany;
 		newPolygon.vertex[newPolygon.howmany] = myPolygon.vertex[k];
 		newPolygon.howmany++;
 		if (k==pos2){
+			printf("BREAK\n");
 			break;
 		}
 	}
+	printf("HOW MANY CREATE: %d \n ", newPolygon.howmany );
 	return newPolygon;
 }
 
 void checkClip(polygon myPolygon, point clipper[]){
-	int j;
-	
+	int j;	
 	bool didyoucreate = false;
 	for (j=0; j<4; j++){				// gia kathe pleura tou clipper
 		inter temnomena;
 		temnomena = countInter(myPolygon, clipper, j);	//krata ta temnomena
+		printf("temnomena: %d \n", temnomena.howmany);
 		if (temnomena.howmany>2){				//an einai perissotera apo 2
 			temnomena = Sort(temnomena,temnomena.howmany, j);		//taksinomise ta  se auksousa
-			for (int z=1; z<temnomena.howmany-1; z+=2){					//gia kathe dyada (1-3,3-5 etc)
+			for (int z=1; z<temnomena.howmany-1; z+=2){					//gia kathe dyada (1-2,3-4 etc)
 				polygon nPolygon;									
 				if (temnomena.vertex[z].realpos + 1 == temnomena.vertex[z+1].realpos){	// an einai sinexomena real me to epomeno
+					printf("temn1 %d temn2 %d \n", temnomena.vertex[z-1].realpos, temnomena.vertex[z].realpos );
 					nPolygon = createPol(myPolygon, temnomena.vertex[z-1].realpos,  temnomena.vertex[z].realpos ); //ftiakse new
 					clippedPolygons[numofClipped] = nPolygon;					//kai valto sta clipped
-					numofClipped++;					
+					numofClipped++;
+						
+					nPolygon = createPol(myPolygon, temnomena.vertex[z+1].realpos,  temnomena.vertex[z+2].realpos );
+					clippedPolygons[numofClipped] = nPolygon;
+					numofClipped++;				
 					didyoucreate = true;
 				}
+			}
+			if (didyoucreate){
+				printf("did you create\n");
+				return;
 			}	
 		}
 	}
-	if (didyoucreate){
-		printf("did you create\n");
-		return;
-	}
+	
+	printf("NOT\n");
 	clippedPolygons[numofClipped] = myPolygon;
 	numofClipped++;
 	return;
@@ -459,18 +477,17 @@ void mouse(int button, int state, int x, int y) {
 				clipper[3].y = clipper[2].y;
 
 				int i;
-				
 				memset(result, 0, 100);	//delete ta trigwna
 
 				for (i=0; i<numofPol; i++){
 					allPolygons[i] = clip(allPolygons[i]);	//antikathista ta polugwna me ta kommena
-					Process(allPolygons[i], i);	//trigwnopoihsh ksana gia kathe neo
+					checkClip (allPolygons[i],clipper);
 				}
 				for (i=0; i<numofClipped; i++){
-					allPolygons[numofPol+i] = clippedPolygons[i];	//prosthetei ta extra
-					Process(allPolygons[numofPol+i], numofPol+i);	//trigwnopoihsh ksana gia kathe neo											//auta pou itan dipla
+					allPolygons[i] = clippedPolygons[i];	//prosthetei ta extra
+					Process(allPolygons[i], i);	//trigwnopoihsh ksana gia kathe neo		
 				}
-				numofPol += numofClipped;
+				numofPol = numofClipped;
 				normalMode = false;
 				clipperDeclared = true;
 				glutPostRedisplay();
