@@ -16,8 +16,8 @@
 #define LINECOLOR 	4
 #define FILLCOLOR 	5
 
-#define WIDTH 	600
-#define HEIGHT 	500
+#define WIDTH 	500
+#define HEIGHT 	600
 #define EP 		0.000001
 
 #define BOTTOM 	0
@@ -96,7 +96,6 @@ bool normalMode = true;
 point new_point;
 polygon allPolygons [80];
 polygon result[100];		//for Triangle
-
 point clipper[4];		//for Clipping
 polygon clippedPolygons [100];
 
@@ -260,13 +259,19 @@ bool inside(point mypoint, int side) {
 	}
 	return false;
 }
-// This functions clips all the edges w.r.t one clip edge of clipping area 
+
 polygon clip (polygon myPolygon){
 	int j, i, k;
 	for (j = 0; j <4; j++){
 		int allPoints = myPolygon.howmany;
 		int new_points =0;
 		polygon newPolygon;
+		newPolygon.linecolor[0] = myPolygon.linecolor[0];
+		newPolygon.linecolor[1] = myPolygon.linecolor[1];
+		newPolygon.linecolor[2] = myPolygon.linecolor[2];
+		newPolygon.fillcolor[0] = myPolygon.fillcolor[0];
+		newPolygon.fillcolor[1] = myPolygon.fillcolor[1];
+		newPolygon.fillcolor[2] = myPolygon.fillcolor[2];
 		newPolygon.howmany = 0;
 	
 		for (i = 0; i < allPoints; i++){
@@ -659,7 +664,7 @@ void display(void) {
     glClear( GL_COLOR_BUFFER_BIT );
     glMatrixMode( GL_PROJECTION );
     glLoadIdentity();
-    glOrtho(0,w,0,h,-1,1);
+    glOrtho(0, w, 0, h,-1,1);
     //glMatrixMode( GL_MODELVIEW );
     //glLoadIdentity();
 
@@ -673,7 +678,7 @@ void display(void) {
 	} 
 	if (clipperDeclared){
 		drawLines();
-		//fillTriangles();
+		fillTriangles();
 	}
 	glFlush();
 	glutSwapBuffers();
@@ -957,10 +962,10 @@ int main(int argc, char** argv) {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB );
 	window = glutCreateWindow("My Window");
-	glutInitWindowPosition(50, 50);
-	glutInitWindowSize(500, 600);
+	glutInitWindowPosition(0, 0);
+	glutInitWindowSize(WIDTH, HEIGHT);
 	w = glutGet( GLUT_WINDOW_WIDTH );
-    	h = glutGet( GLUT_WINDOW_HEIGHT );
+    h = glutGet( GLUT_WINDOW_HEIGHT );
 	initGL();
 	glutReshapeFunc(window_reshape);
 	glutDisplayFunc(display);
