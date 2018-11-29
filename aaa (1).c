@@ -57,14 +57,9 @@ typedef struct polygon{
 	
 }polygon;
 
-typedef struct inter{
-	point vertex [100];
-	int howmany;
-}inter;
-
 bool inside(point mypoint, int side);
 polygon clip (polygon myPolygon);
-inter countInter(polygon myPolygon, point clipper[], int side);
+polygon countInter(polygon myPolygon, point clipper[], int side);
 bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
 float Area(polygon myPolygon);
 bool isItInside(float Ax, float Ay, float Bx, float By, float Cx, float Cy, float Px, float Py);
@@ -99,7 +94,7 @@ polygon result[100];		//for Triangle
 point clipper[4];		//for Clipping
 polygon clippedPolygons [100];
 
-inter Sort( inter I, int n, int side){	//sort auksousa seira
+polygon Sort( polygon I, int n, int side){	//sort auksousa seira
    int i, j; 
    for (i = 0; i < n-1; i++){
        // Last i elements are already in place    
@@ -154,22 +149,34 @@ void checkClip(polygon myPolygon, point clipper[]){
 	int j;	
 	bool didyoucreate = false;
 	for (j=0; j<4; j++){				// gia kathe pleura tou clipper
-		inter temnomena;
+		polygon temnomena;
 		temnomena = countInter(myPolygon, clipper, j);	//krata ta temnomena
 		printf("temnomena: %d \n", temnomena.howmany);
 		if (temnomena.howmany>2){				//an einai perissotera apo 2
 			temnomena = Sort(temnomena,temnomena.howmany, j);		//taksinomise ta  se auksousa
 			for (int z=1; z<temnomena.howmany-1; z+=2){					//gia kathe dyada (1-2,3-4 etc)
-				polygon nPolygon;									
+				polygon nPolygon;							
 				if (temnomena.vertex[z].realpos + 1 == temnomena.vertex[z+1].realpos){	// an einai sinexomena real me to epomeno
 					printf("temn1 %d temn2 %d \n", temnomena.vertex[z-1].realpos, temnomena.vertex[z].realpos );
 					if (z==1){
 						nPolygon = createPol(myPolygon, temnomena.vertex[z-1].realpos,  temnomena.vertex[z].realpos ); //ftiakse new
+						nPolygon.linecolor[0] = myPolygon.linecolor[0];
+						nPolygon.linecolor[1] = myPolygon.linecolor[1];
+						nPolygon.linecolor[2] = myPolygon.linecolor[2];
+						nPolygon.fillcolor[0] = myPolygon.fillcolor[0];
+						nPolygon.fillcolor[1] = myPolygon.fillcolor[1];
+						nPolygon.fillcolor[2] = myPolygon.fillcolor[2];	
 						clippedPolygons[numofClipped] = nPolygon;					//kai valto sta clipped
 						numofClipped++;
 					}
 						
 					nPolygon = createPol(myPolygon, temnomena.vertex[z+1].realpos,  temnomena.vertex[z+2].realpos );
+					nPolygon.linecolor[0] = myPolygon.linecolor[0];
+					nPolygon.linecolor[1] = myPolygon.linecolor[1];
+					nPolygon.linecolor[2] = myPolygon.linecolor[2];
+					nPolygon.fillcolor[0] = myPolygon.fillcolor[0];
+					nPolygon.fillcolor[1] = myPolygon.fillcolor[1];
+					nPolygon.fillcolor[2] = myPolygon.fillcolor[2];	
 					clippedPolygons[numofClipped] = nPolygon;
 					numofClipped++;				
 					didyoucreate = true;
@@ -188,8 +195,8 @@ void checkClip(polygon myPolygon, point clipper[]){
 	return;
 }
 
-inter countInter(polygon myPolygon, point clipper[], int side){ //return ta temnomena simeia uparxoun
-	inter temnomena;
+polygon countInter(polygon myPolygon, point clipper[], int side){ //return ta temnomena simeia uparxoun
+	polygon temnomena;
 	
 	if (side==0 || side==2){
 		for (int i=0; i<myPolygon.howmany; i++){
@@ -588,8 +595,7 @@ void drawLines(){
 		    }
 		    glEnd();
 		}
-	}
-	
+	}	
 }
 
 void drawTriangles(){
