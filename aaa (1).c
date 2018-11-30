@@ -64,10 +64,12 @@ typedef struct triangles{
 bool inside(point mypoint, int side);
 polygon clip (polygon myPolygon);
 polygon countInter(polygon myPolygon, point clipper[], int side);
-bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
 void initGL();
 void drawLines();
+void drawClipped();
 void drawTriangles();
+bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
+void fillTriangles();
 void createGLUTMenus();
 void lineColorMenuEvents(int option);
 void fillColorMenuEvents(int option);
@@ -321,7 +323,6 @@ polygon clip (polygon myPolygon){
 				newPolygon.vertex[new_points] = intersectPoint (p1, p2, clipper[j], clipper[(j+1)%4]);
 				newPolygon.howmany ++;
 				new_points++;
-				// 	//add one I
 			}else if ( !inside(p1, j) && !inside(p2, j)){ // 2 ekswterika
 				/* none */
 			}else if ( !inside(p1, j) && inside(p2, j)){
@@ -389,36 +390,36 @@ void window_reshape(int width, int height){
 }
 
 void mouse(int button, int state, int x, int y) {
-	if ( (drawingstopped && !clippingMode) || clipperDeclared ){ 
+	if ( (drawingstopped && !clippingMode) || (clipperDeclared && clippingMode) ){ 
 		glutPostRedisplay();
     	return;
 	}
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
 		if (clippingMode){
 			if (clippoint<2){
-				clipper[clippoint].x = x;		//Save top left corner first[0] and then right bottom[2]
+				clipper[clippoint].x = x;		//Save bottom right corner first[0] and then left top[2]
 				clipper[clippoint].y = y;
 				printf("%d point saved\n", clippoint);
 				clippoint += 2;	
 			}else{
-				clipper[clippoint].x = x;		//Save top left corner first[0] and then right bottom[2]
+				clipper[clippoint].x = x;	
 				clipper[clippoint].y = y;
 				printf("%d point saved\n", clippoint);
 				clipper[1].x = clipper[2].x;
 				clipper[1].y = clipper[0].y;
 				clipper[3].x = clipper[0].x;
 				clipper[3].y = clipper[2].y;
+				clippoint=0;
 				int i;
-				memset(result, 0, 100);	//delete ta trigwna
-
 				for (i=0; i<numofPol; i++){
 					allPolygons[i] = clip(allPolygons[i]);	//antikathista ta polugwna me ta kommena
-					checkClip (allPolygons[i],clipper);
+					checkClip (allPolygons[i],clipper);		//ta elegxei 
 				}
 				for (i=0; i<numofClipped; i++){
 					allPolygons[i] = clippedPolygons[i];	//prosthetei ta extra	
 				}
 				numofPol = numofClipped;
+				clippingMode = false;
 				normalMode = false;
 				clipperDeclared = true;
 				glutPostRedisplay();
@@ -443,6 +444,7 @@ void mouse(int button, int state, int x, int y) {
 		drawingstopped = 1;
 		glutAttachMenu(GLUT_RIGHT_BUTTON); //attach right click to menu again	
 		if (allPolygons[numofPol].howmany < 3){
+			allPolygons[numofPol].howmany = 0;
 			glutPostRedisplay();
     		return;
 		}
@@ -639,11 +641,12 @@ void display(void) {
     	drawLines();
     	fillTriangles();
 	} 
-	if (clipperDeclared){
+	if (clipperDeclared && !triangleMode){
 		drawClipped();
 		triangulation();
 		fillTriangles();
-		normalMode = true;	//done with clipping back to normalMode
+		clipperDeclared = false;	//done with clipping ready for new clipper
+		normalMode = true;			//back to normalMode
 	}
 	if (extrudeMode){
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -944,7 +947,7 @@ int main(int argc, char** argv) {
 	glutInitWindowPosition(0, 0);
 	glutInitWindowSize(WIDTH, HEIGHT);
 	w = glutGet( GLUT_WINDOW_WIDTH );
-    h = glutGet( GLUT_WINDOW_HEIGHT );
+    	h = glutGet( GLUT_WINDOW_HEIGHT );
 	initGL();
 	glutReshapeFunc(window_reshape);
 	glutDisplayFunc(display);
