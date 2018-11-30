@@ -5,7 +5,8 @@
 #include <GL/gl.h>
 #include <GL/glut.h> 
 #include <stdbool.h>
-#include <stdlib.h>
+#include <math.h>
+#include "triangulate.h"
 
 #define POLYGON 	0
 #define CLIPPING 	1
@@ -54,15 +55,16 @@ typedef struct polygon{
 	
 }polygon;
 
+typedef struct triangles{
+	point vertex [3];
+	int whichpol;	
+}triangles;
+
 /******************  FUNCTIONS DECLARATION ******************/
 bool inside(point mypoint, int side);
 polygon clip (polygon myPolygon);
 polygon countInter(polygon myPolygon, point clipper[], int side);
 bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4);
-float Area(polygon myPolygon);
-bool isItInside(float Ax, float Ay, float Bx, float By, float Cx, float Cy, float Px, float Py);
-bool Snip(polygon myPolygon, int u,int v,int w,int n,int *V);
-bool Process(polygon myPolygon, int eachpol);
 void initGL();
 void drawLines();
 void drawTriangles();
@@ -77,17 +79,22 @@ int clippoint = 0;
 int numofPol = 0;
 int numofClipped = 0;
 int new_vertex;
+int depth =0;
 float lineColor[] = {0.0, 0.0, 0.0};	/*** Default line color BLACK ***/
 float fillColor[] = {1.0, 1.0, 1.0};	/*** Default fill color WHITE ***/
+int phi = 20;
+int theta = 20;
+int alltriangles =0;
 
 bool clippingMode = false;
 bool triangleMode = false;
 bool clipperDeclared = false;
 bool normalMode = true;
+bool extrudeMode = false;
 
 point new_point;
 polygon allPolygons [100];
-polygon result[100];			/*** for TRIANGLE ***/
+triangles result[100];			/*** for TRIANGLE ***/
 point clipper[4];				/*** Clipping area ***/
 polygon clippedPolygons [120];
 
@@ -98,8 +105,8 @@ polygon Sort( polygon I, int n, int side){	//sort auksousa seira
    for (i = 0; i < n-1; i++){
        // Last i elements are already in place    
        for (j = 0; j < n-i-1; j++){
-       		if (side%2==0){		// BOTTOM OR TOP
-       			if (I.vertex[j].x > I.vertex[j+1].x){	//sugkrinw x 
+       		if (side==0){		// BOTTOM OR TOP
+       			if (I.vertex[j].x < I.vertex[j+1].x){	//sugkrinw x 
        				point tmp;
        				int tmpreal;
        				tmp = I.vertex[j];
@@ -109,8 +116,30 @@ polygon Sort( polygon I, int n, int side){	//sort auksousa seira
        				I.vertex[j+1] = tmp;
        				I.vertex[j+1].realpos = tmpreal;
            		}
-			}else{
+			}else if(side==1){
 				if (I.vertex[j].y < I.vertex[j+1].y){	//sygkrinw y
+           			point tmp;
+       				int tmpreal;
+       				tmp = I.vertex[j];
+       				tmpreal = I.vertex[j].realpos;
+       				I.vertex[j] = I.vertex[j+1];	//ekana swsta swap?
+       				I.vertex[j].realpos = I.vertex[j+1].realpos;
+       				I.vertex[j+1] = tmp;
+       				I.vertex[j+1].realpos = tmpreal;
+           		}
+			}else if(side==2){
+				if (I.vertex[j].x > I.vertex[j+1].x){	//sygkrinw y
+           			point tmp;
+       				int tmpreal;
+       				tmp = I.vertex[j];
+       				tmpreal = I.vertex[j].realpos;
+       				I.vertex[j] = I.vertex[j+1];	//ekana swsta swap?
+       				I.vertex[j].realpos = I.vertex[j+1].realpos;
+       				I.vertex[j+1] = tmp;
+       				I.vertex[j+1].realpos = tmpreal;
+           		}
+			}else{
+				if (I.vertex[j].y > I.vertex[j+1].y){	//sygkrinw y
            			point tmp;
        				int tmpreal;
        				tmp = I.vertex[j];
@@ -149,11 +178,12 @@ void checkClip(polygon myPolygon, point clipper[]){
 	bool didyoucreate = false;
 	for (j=0; j<4; j++){				// gia kathe pleura tou clipper
 		polygon temnomena;
+		temnomena.howmany = 0;
 		temnomena = countInter(myPolygon, clipper, j);	//krata ta temnomena
 		printf("temnomena: %d \n", temnomena.howmany);
 		if (temnomena.howmany>2){				//an einai perissotera apo 2
 			temnomena = Sort(temnomena,temnomena.howmany, j);		//taksinomise ta  se auksousa
-			for (int z=0; z<temnomena.howmany-1; z+=2){					//gia kathe dyada (1-2,3-4 etc)
+			for (int z=1; z<temnomena.howmany-1; z+=2){					//gia kathe dyada (1-2,3-4 etc)
 				polygon nPolygon;							
 				if (temnomena.vertex[z].realpos + 1 == temnomena.vertex[z+1].realpos){	// an einai sinexomena real me to epomeno
 					printf("temn1 %d temn2 %d \n", temnomena.vertex[z-1].realpos, temnomena.vertex[z].realpos );
@@ -168,7 +198,7 @@ void checkClip(polygon myPolygon, point clipper[]){
 						clippedPolygons[numofClipped] = nPolygon;					//kai valto sta clipped
 						numofClipped++;
 					}		
-					nPolygon = createPol(myPolygon, temnomena.vertex[z].realpos,  temnomena.vertex[z+1].realpos );
+					nPolygon = createPol(myPolygon, temnomena.vertex[z+1].realpos,  temnomena.vertex[z+2].realpos );
 					nPolygon.linecolor[0] = myPolygon.linecolor[0];
 					nPolygon.linecolor[1] = myPolygon.linecolor[1];
 					nPolygon.linecolor[2] = myPolygon.linecolor[2];
@@ -195,6 +225,7 @@ void checkClip(polygon myPolygon, point clipper[]){
 
 polygon countInter(polygon myPolygon, point clipper[], int side){ //return ta temnomena simeia uparxoun
 	polygon temnomena;
+	temnomena.howmany = 0;
 	
 	if (side==0 || side==2){
 		for (int i=0; i<myPolygon.howmany; i++){
@@ -317,142 +348,36 @@ polygon clip (polygon myPolygon){
 }
 
 /************************* TRIANGULATION *************************/
-float Area(polygon myPolygon){
 
-	int n = myPolygon.howmany;
-	float a =0.0f;
-	int p, q;
-	for (p=n-1, q=0; q<n; p=q++){
-		a += myPolygon.vertex[p].x * myPolygon.vertex[q].y - myPolygon.vertex[q].x * myPolygon.vertex[p].y ;
-	}
-	return (a*0.5);
-
-}
-
-bool isItInside(float Ax, float Ay, float Bx, float By, float Cx, float Cy, float Px, float Py){
-	float ax, ay, bx, by, cx, cy, apx, apy, bpx, bpy, cpx, cpy;
-  	float cCROSSap, bCROSScp, aCROSSbp;
-  	
-  	ax = Cx - Bx;  ay = Cy - By;
-  	bx = Ax - Cx;  by = Ay - Cy;
-  	cx = Bx - Ax;  cy = By - Ay;
-  	apx= Px - Ax;  apy= Py - Ay;
-  	bpx= Px - Bx;  bpy= Py - By;
-  	cpx= Px - Cx;  cpy= Py - Cy;
-
-  	aCROSSbp = ax*bpy - ay*bpx;
- 	cCROSSap = cx*apy - cy*apx;
-  	bCROSScp = bx*cpy - by*cpx;
-
-  	return ((aCROSSbp >= 0.0) && (bCROSScp >= 0.0) && (cCROSSap >= 0.0));
-}
-
-bool Snip(polygon myPolygon, int u,int v,int w,int n,int *V){
-	int p;
-	float Ax, Ay, Bx, By, Cx, Cy, Px, Py;
-
-	Ax = myPolygon.vertex[V[u]].x;
-  	Ay = myPolygon.vertex[V[u]].y;
-
-  	Bx = myPolygon.vertex[V[v]].x;
-  	By = myPolygon.vertex[V[v]].y;
-
-  	Cx = myPolygon.vertex[V[w]].x;
-  	Cy = myPolygon.vertex[V[w]].y;
-
-	if ( EP > (((Bx-Ax)*(Cy-Ay)) - ((By-Ay)*(Cx-Ax))) ) {
-		return false;
-	}
-
-	for (p=0;p<n;p++){
-    	if( (p == u) || (p == v) || (p == w) ){
-    		continue;
-    	} 
-    	Px = myPolygon.vertex[V[p]].x;
-    	Py = myPolygon.vertex[V[p]].y;
-    	if (isItInside(Ax,Ay,Bx,By,Cx,Cy,Px,Py)){ 
-    		return false;
-    	}
-  	}
-
-  	return true;
-}
-
-bool Process(polygon myPolygon, int eachpol){
-	
-	int n = myPolygon.howmany;		///EDWWWWWWWWW
-	int v;
-	result[eachpol].howmany = 0;
-	printf("Process how many%d \n", myPolygon.howmany);
-	if (n<3){
-		return false;
-	}
-	int *V; 
-	V = (int*) malloc (n*sizeof(int));
-
-
-	if (0 < Area(myPolygon)){
-		for (v = 0; v < n; ++v){
-			V[v] = v;
+void triangulation(){
+	int i, j, k, triangles;
+	alltriangles =0;
+	for (int i=0; i<numofPol; i++){
+		Vector2dVector a, myresult;
+		for (j=0; j<allPolygons[i].howmany; j++){
+			a.push_back(Vector2d(allPolygons[i].vertex[j].x, allPolygons[i].vertex[j].y));
 		}
-	}else{
-		for (v = 0; v < n; ++v){
-			V[v] = (n-1)-v;
-		}
-	}
-	int nv = n;	
-	int count = 2*nv;
-	int m;
-	int eachpoint =0;
-
-	for (m = 0, v=nv-1; nv>2;){
-		if ( 0>= (count--)){
-			return false;
-		}
-
-		int u = v;
-		if (nv<=u){
-			u=0;
-		}
-		v = u +1;
-		if (nv <= v){
-			v=0;
-		}
-		int w = v+1;
-		if (nv <=w){
-			w=0;
-		}
-
-		if (Snip(myPolygon, u, v, w, nv, V)){
-			int a, b, c, s, t;
-			a = V[u];
-			b = V[v];
-			c = V[w];
+		Triangulate::Process(a, myresult);
+		triangles = myresult.size() / 3;
+		
+		for(k=0; k<triangles; k++){
 			
+			result[alltriangles].whichpol = i;
+			
+			result[alltriangles].vertex[0].x = myresult[k*3].GetX();
+			result[alltriangles].vertex[0].y = myresult[k*3].GetY();
 
-			result[eachpol].vertex[eachpoint] = myPolygon.vertex[a]; 
-			eachpoint ++;
-			result[eachpol].vertex[eachpoint] = myPolygon.vertex[b]; 
-			eachpoint ++;
-			result[eachpol].vertex[eachpoint] = myPolygon.vertex[c]; 
-			eachpoint ++;
-			result[eachpol].howmany += 3;
-
-			m++;
-
-			for (s=v, t=v+1; t<nv; s++, t++){
-				V[s] = V[t];
-				nv--;
-			}
-			count = 2*nv;
-		}
-	}	
-	free (V);
-
-	return true;
-
+			result[alltriangles].vertex[1].x = myresult[k*3 + 1].GetX();
+			result[alltriangles].vertex[1].y = myresult[k*3 + 1].GetY();
+			
+			result[alltriangles].vertex[2].x = myresult[k*3 + 2].GetX();
+			result[alltriangles].vertex[2].y = myresult[k*3 + 2].GetY();
+	
+			alltriangles++;
+		}	
+	}
+	
 }
-
 /************************* WINDOW-MOUSE-KEYBOARD HANDLE *************************/
 void initGL(){
   	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
@@ -491,8 +416,7 @@ void mouse(int button, int state, int x, int y) {
 					checkClip (allPolygons[i],clipper);
 				}
 				for (i=0; i<numofClipped; i++){
-					allPolygons[i] = clippedPolygons[i];	//prosthetei ta extra
-					Process(allPolygons[i], i);	//trigwnopoihsh ksana gia kathe neo		
+					allPolygons[i] = clippedPolygons[i];	//prosthetei ta extra	
 				}
 				numofPol = numofClipped;
 				normalMode = false;
@@ -517,11 +441,10 @@ void mouse(int button, int state, int x, int y) {
 	
 	if ( button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN ){ //right click to finish drawing a polygon
 		drawingstopped = 1;
-		
 		glutAttachMenu(GLUT_RIGHT_BUTTON); //attach right click to menu again	
-		glutPostRedisplay();
-		Process(allPolygons[numofPol], numofPol);
 		numofPol++;
+		triangulation();
+		glutPostRedisplay();
     	return;
 	}
 	glutPostRedisplay();
@@ -543,6 +466,38 @@ void keyboard(unsigned char key, int x, int y) {
 }
 
 /**************************** DRAWING ****************************/
+void draw3d(){
+	int i, j, k;
+	int z = depth;
+	for (i=0; i<numofPol; i++){
+		
+		for (j=0; j<allPolygons[i].howmany; j++){
+			k = (j+1)%allPolygons[i].howmany;
+			glBegin(GL_LINES);
+			
+			glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, 0); 	//start point of edge
+        	glVertex3f( allPolygons[i].vertex[k].x , h-allPolygons[i].vertex[k].y, 0);	//end point in 0 depth
+        	
+        	glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, z);  //start point of edge
+        	glVertex3f( allPolygons[i].vertex[k].x , h-allPolygons[i].vertex[k].y, z);	//end point in z depth
+        	
+        	glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, 0); //connect 0 to z depth
+        	glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, z);	
+			
+			glEnd();
+			
+			glBegin(GL_QUADS);
+			
+			glVertex3f( allPolygons[i].vertex[k].x , h-allPolygons[i].vertex[k].y, 0);	//fill the sides
+        	glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, 0); 
+        	glVertex3f( allPolygons[i].vertex[k].x , h-allPolygons[i].vertex[k].y, z);	
+        	glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, z); 
+			glEnd();
+		}
+	}
+	
+}
+
 void drawLines(){
 	
 	int j=0;	int k=0;	int z;
@@ -591,44 +546,52 @@ void drawLines(){
 	}	
 }
 
-void drawTriangles(){
-
-	int i, j, count;
-	for ( i = 0; i <numofPol; ++i){
-		
-		count = result[i].howmany / 3;
-		printf("POSA TRIGWNA %d KORIFES %d\n", count, result[i].howmany );
-		
-		glColor3f(0.0, 1.0, 0.0);
-		glLineWidth(1);
+void drawClipped(){
+	int i, j, k;
+	for (i=0; i<numofPol; i++){
+		glColor3f(allPolygons[i].linecolor[0], allPolygons[i].linecolor[1], allPolygons[i].linecolor[2]);
+		glLineWidth(2);
 		glBegin(GL_LINES);
-		
-		for (j = 0; j <= count; ++j){
-			glVertex2f(result[i].vertex[j*3].x, h-result[i].vertex[j*3].y);
-			glVertex2f(result[i].vertex[j*3+1].x, h-result[i].vertex[j*3+1].y);
-
-			glVertex2f(result[i].vertex[j*3+1].x, h-result[i].vertex[j*3+1].y);
-			glVertex2f(result[i].vertex[j*3+2].x, h-result[i].vertex[j*3+2].y);
-
-			glVertex2f(result[i].vertex[j*3+2].x, h-result[i].vertex[j*3+2].y);
-			glVertex2f(result[i].vertex[j*3].x, h-result[i].vertex[j*3].y);	
+		for (j=0; j<allPolygons[i].howmany; j++){
+			k = (j+1)%allPolygons[i].howmany;
+			glVertex2f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y ); 
+        	glVertex2f( allPolygons[i].vertex[k].x , h-allPolygons[i].vertex[k].y);	
 		}
 		glEnd();
+	}
+}
+
+void drawTriangles(){
+
+	int i;
+	for ( i = 0; i <alltriangles; ++i){	
+		glColor3f(0.0, 1.0, 0.0);
+		glLineWidth(1);
 		
+		glBegin(GL_LINES);
+		glVertex2f(result[i].vertex[0].x, h-result[i].vertex[0].y);
+		glVertex2f(result[i].vertex[1].x, h-result[i].vertex[1].y);
+		
+		glVertex2f(result[i].vertex[1].x, h-result[i].vertex[1].y);
+		glVertex2f(result[i].vertex[2].x, h-result[i].vertex[2].y);
+			
+		glVertex2f(result[i].vertex[2].x, h-result[i].vertex[2].y);
+		glVertex2f(result[i].vertex[0].x, h-result[i].vertex[0].y);	
+		glEnd();	
 	}
 }
 
 void fillTriangles(){
 
-	int i, j, count;
-	for ( i = 0; i <numofPol; ++i){
-		count = result[i].howmany / 3;
-		for (j = 0; j <= count; ++j){
+	int i, j, k;
+	for ( i = 0; i <numofPol; ++i){	
+		for (j = 0; j <alltriangles; ++j){
+			k = result[j].whichpol;
 			glBegin(GL_TRIANGLES);
-			glColor3f(allPolygons[i].fillcolor[0], allPolygons[i].fillcolor[1], allPolygons[i].fillcolor[2]);
-			glVertex2f(result[i].vertex[j*3].x, h-result[i].vertex[j*3].y);
-			glVertex2f(result[i].vertex[j*3+1].x, h-result[i].vertex[j*3+1].y);
-			glVertex2f(result[i].vertex[j*3+2].x, h-result[i].vertex[j*3+2].y);
+			glColor3f(allPolygons[k].fillcolor[0], allPolygons[k].fillcolor[1], allPolygons[k].fillcolor[2]);
+			glVertex2f(result[j].vertex[0].x, h-result[j].vertex[0].y);
+			glVertex2f(result[j].vertex[1].x, h-result[j].vertex[1].y);
+			glVertex2f(result[j].vertex[2].x, h-result[j].vertex[2].y);
 			glEnd();
 		}
 	}
@@ -659,14 +622,11 @@ bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y
 
 void display(void) {
 	
-	//glutSwapBuffers();
-    glClear( GL_COLOR_BUFFER_BIT );
+   	glClear( GL_COLOR_BUFFER_BIT );
     glMatrixMode( GL_PROJECTION );
     glLoadIdentity();
-    glOrtho(0, w, 0, h,-1,1);
-    //glMatrixMode( GL_MODELVIEW );
-    //glLoadIdentity();
-
+    glOrtho(0, w, 0, h,0,400);
+   
     if (triangleMode){ 	
     	drawTriangles();
     }
@@ -676,15 +636,42 @@ void display(void) {
     	fillTriangles();
 	} 
 	if (clipperDeclared){
-		drawLines();
+		drawClipped();
+		triangulation();
 		fillTriangles();
+		normalMode = true;	//done with clipping back to normalMode
+	}
+	if (extrudeMode){
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		gluPerspective(90, w/h, 0.1f, 100.0f);
+		
+		glOrtho(0 ,w ,h ,0 , 0, 500);
+		
+  		glMatrixMode(GL_MODELVIEW);
+  		glLoadIdentity();
+
+ 		float eyeX, eyeY, eyeZ;
+ 		float radius = 150;
+ 		eyeX = radius*sin(theta);
+ 		eyeY = radius*sin(phi);
+ 		eyeZ = radius*cos(theta);
+ 		gluLookAt(eyeX, eyeY, eyeZ, 0, 0, -100, 0, 1.0f, 0);
+  	
+  		glLoadIdentity();
+ 
+  		/*  Set View Angle */
+  		//glRotated(20,1,0,0);
+  		//glRotated(-20,0,1,0);
+		draw3d();
 	}
 	glFlush();
 	glutSwapBuffers();
 }	
 
 /**************************** MENU HANDLE ****************************/
-void processMenuEvents(int option) {
+void actionMenuEvents(int option) {
 	switch (option) {
 		case POLYGON :
 			normalMode = true;
@@ -704,6 +691,10 @@ void processMenuEvents(int option) {
 			glutMouseFunc(mouse);
         	break;	
         case EXTRUDE :
+        	printf("Extrude mode ON. Give me the depth from 0 to 30: ");
+        	scanf("%d \n", &depth);
+        	extrudeMode = true;
+        	glutPostRedisplay();
         	break;	
         case EXIT :
         	exit(0);
@@ -715,9 +706,10 @@ void createGLUTMenus() {
 
 	int ACTION, LINE_COLOR, FILL_COLOR, MAINMENU;
 	
-	ACTION = glutCreateMenu(processMenuEvents);	
+	ACTION = glutCreateMenu(actionMenuEvents);	
 	glutAddMenuEntry("Polygon", POLYGON);		/*** Create the  subMenus' choises ***/
 	glutAddMenuEntry("Clipping", CLIPPING);		
+	glutAddMenuEntry("Extrude", EXTRUDE);	
 	glutAddMenuEntry("Exit", EXIT);				
 	/**** create the menu and tell glut that "lineColorMenuEvents" will handle the events ****/
 	LINE_COLOR = glutCreateMenu(lineColorMenuEvents);
@@ -757,7 +749,7 @@ void createGLUTMenus() {
   	glutAddMenuEntry("Silver", 16);
 	
 	/**** create the menu and tell glut that "processMenuEvents" will handle the events****/
-	MAINMENU = glutCreateMenu(processMenuEvents);
+	MAINMENU = glutCreateMenu(actionMenuEvents);
 	/**** add entries to our menu ****/
 	glutAddSubMenu("Action", ACTION);
 	glutAddSubMenu("Line Color", LINE_COLOR);
@@ -948,7 +940,7 @@ int main(int argc, char** argv) {
 	glutInitWindowPosition(0, 0);
 	glutInitWindowSize(WIDTH, HEIGHT);
 	w = glutGet( GLUT_WINDOW_WIDTH );
-    	h = glutGet( GLUT_WINDOW_HEIGHT );
+    h = glutGet( GLUT_WINDOW_HEIGHT );
 	initGL();
 	glutReshapeFunc(window_reshape);
 	glutDisplayFunc(display);
