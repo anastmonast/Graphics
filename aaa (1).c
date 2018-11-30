@@ -103,37 +103,37 @@ polygon clippedPolygons [120];
 polygon Sort( polygon I, int n, int side){	//sort auksousa seira
    int i, j; 
    for (i = 0; i < n-1; i++){
-       // Last i elements are already in place    
+        
        for (j = 0; j < n-i-1; j++){
-       		if (side==0){		// BOTTOM OR TOP
+       		if (side==BOTTOM){							// BOTTOM auksousa --->
        			if (I.vertex[j].x < I.vertex[j+1].x){	//sugkrinw x 
        				point tmp;
        				int tmpreal;
        				tmp = I.vertex[j];
        				tmpreal = I.vertex[j].realpos;
-       				I.vertex[j] = I.vertex[j+1];	//ekana swsta swap?
+       				I.vertex[j] = I.vertex[j+1];	
        				I.vertex[j].realpos = I.vertex[j+1].realpos;
        				I.vertex[j+1] = tmp;
        				I.vertex[j+1].realpos = tmpreal;
            		}
-			}else if(side==1){
+			}else if(side==LEFT){						// LEFT auksousa
 				if (I.vertex[j].y < I.vertex[j+1].y){	//sygkrinw y
            			point tmp;
        				int tmpreal;
        				tmp = I.vertex[j];
        				tmpreal = I.vertex[j].realpos;
-       				I.vertex[j] = I.vertex[j+1];	//ekana swsta swap?
+       				I.vertex[j] = I.vertex[j+1];	
        				I.vertex[j].realpos = I.vertex[j+1].realpos;
        				I.vertex[j+1] = tmp;
        				I.vertex[j+1].realpos = tmpreal;
            		}
-			}else if(side==2){
+			}else if(side==TOP){						//TOP fthinousa <----
 				if (I.vertex[j].x > I.vertex[j+1].x){	//sygkrinw y
            			point tmp;
        				int tmpreal;
        				tmp = I.vertex[j];
        				tmpreal = I.vertex[j].realpos;
-       				I.vertex[j] = I.vertex[j+1];	//ekana swsta swap?
+       				I.vertex[j] = I.vertex[j+1];	
        				I.vertex[j].realpos = I.vertex[j+1].realpos;
        				I.vertex[j+1] = tmp;
        				I.vertex[j+1].realpos = tmpreal;
@@ -144,7 +144,7 @@ polygon Sort( polygon I, int n, int side){	//sort auksousa seira
        				int tmpreal;
        				tmp = I.vertex[j];
        				tmpreal = I.vertex[j].realpos;
-       				I.vertex[j] = I.vertex[j+1];	//ekana swsta swap?
+       				I.vertex[j] = I.vertex[j+1];
        				I.vertex[j].realpos = I.vertex[j+1].realpos;
        				I.vertex[j+1] = tmp;
        				I.vertex[j+1].realpos = tmpreal;
@@ -442,6 +442,10 @@ void mouse(int button, int state, int x, int y) {
 	if ( button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN ){ //right click to finish drawing a polygon
 		drawingstopped = 1;
 		glutAttachMenu(GLUT_RIGHT_BUTTON); //attach right click to menu again	
+		if (allPolygons[numofPol].howmany < 3){
+			glutPostRedisplay();
+    		return;
+		}
 		numofPol++;
 		triangulation();
 		glutPostRedisplay();
@@ -619,7 +623,7 @@ bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y
 	return(1);
 	
 }
-
+/**************************** DISPLAY ****************************/
 void display(void) {
 	
    	glClear( GL_COLOR_BUFFER_BIT );
