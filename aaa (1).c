@@ -73,6 +73,7 @@ void fillTriangles();
 void createGLUTMenus();
 void lineColorMenuEvents(int option);
 void fillColorMenuEvents(int option);
+void draw3d();
 
 /****************** GLOBALS ******************/
 int window, polygons, w, h, yiot;
@@ -81,11 +82,11 @@ int clippoint = 0;
 int numofPol = 0;
 int numofClipped = 0;
 int new_vertex;
-int depth =0;
+int depth =200;
 float lineColor[] = {0.0, 0.0, 0.0};	/*** Default line color BLACK ***/
 float fillColor[] = {1.0, 1.0, 1.0};	/*** Default fill color WHITE ***/
-int phi = 20;
-int theta = 20;
+int phi = 1;
+int theta = -1;
 int alltriangles =0;
 
 bool clippingMode = false;
@@ -380,13 +381,41 @@ void triangulation(){
 	
 }
 /************************* WINDOW-MOUSE-KEYBOARD HANDLE *************************/
+
+void specialKeys(int key,int x,int y){
+  /*  Right arrow key - increase azimuth by 5 degrees */
+	switch (key) {
+		case GLUT_KEY_LEFT :
+			theta -= 5;
+			break;
+		case GLUT_KEY_RIGHT :
+			theta += 5;
+			break;
+		case GLUT_KEY_UP :
+			phi += 5;
+			break;
+		case GLUT_KEY_DOWN :
+			phi -= 5;
+			break;
+	}
+  	glutPostRedisplay();
+}
+
 void initGL(){
   	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
   	glClear( GL_COLOR_BUFFER_BIT );
 }
 
 void window_reshape(int width, int height){
-	glutReshapeWindow( width, height); 
+	glViewport(0, 0, 500, 600);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0, 500, 0 , 600, 0, 1200);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	w=500;
+	h=600;
+	glutReshapeWindow( w, h); 	
 }
 
 void mouse(int button, int state, int x, int y) {
@@ -471,37 +500,101 @@ void keyboard(unsigned char key, int x, int y) {
    }
 }
 
+/**************************** DISPLAY ****************************/
+void display(void) {
+   
+    if (triangleMode){ 	
+    	drawTriangles();
+    }
+    
+    if (normalMode){
+    	glClear( GL_COLOR_BUFFER_BIT );
+    	glMatrixMode( GL_PROJECTION );
+    	glLoadIdentity();
+    	gluOrtho2D(0, w, 0, h);
+    	drawLines();
+    	fillTriangles();
+    	glFlush();
+	} 
+	if (clipperDeclared && !triangleMode){
+		glClear( GL_COLOR_BUFFER_BIT );
+    	glMatrixMode( GL_PROJECTION );
+    	glLoadIdentity();
+    	glOrtho(0, w, 0, h, 0, 500);
+		drawClipped();
+		triangulation();
+		fillTriangles();
+		clipperDeclared = false;	//done with clipping ready for new clipper
+		normalMode = true;			//back to normalMode
+		glFlush();
+	}
+	if (extrudeMode){
+		glViewport(0,0, w,h);
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		
+		gluPerspective(90, w/h, 0.1f, 1200.0f);
+		glOrtho(0 ,w ,0 ,h , 0, 1000);
+		
+  		glMatrixMode(GL_MODELVIEW);
+  		glLoadIdentity();
+  		glClear(GL_COLOR_BUFFER_BIT);
+  		glLoadIdentity();
+ 		glRotated(phi,1,0,0);
+  		glRotated(theta,0,1,0);
+ 		
+  		glPushMatrix();
+		draw3d();
+		glPopMatrix();
+	}
+	
+	glutSwapBuffers();
+}	
+
 /**************************** DRAWING ****************************/
 void draw3d(){
-	int i, j, k;
+	int i, j, k, y;
 	int z = depth;
 	for (i=0; i<numofPol; i++){
 		
 		for (j=0; j<allPolygons[i].howmany; j++){
 			k = (j+1)%allPolygons[i].howmany;
-			glBegin(GL_LINES);
-			
+			glColor3f(0, 0, 0);	
+			glBegin(GL_LINES);		
 			glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, 0); 	//start point of edge
         	glVertex3f( allPolygons[i].vertex[k].x , h-allPolygons[i].vertex[k].y, 0);	//end point in 0 depth
-        	
         	glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, z);  //start point of edge
         	glVertex3f( allPolygons[i].vertex[k].x , h-allPolygons[i].vertex[k].y, z);	//end point in z depth
-        	
+        	glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, z);
         	glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, 0); //connect 0 to z depth
-        	glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, z);	
+        	
 			
 			glEnd();
-			
+			glColor3f(allPolygons[i].linecolor[0], allPolygons[i].linecolor[1], allPolygons[i].linecolor[2]);
 			glBegin(GL_QUADS);
+			glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, z); 
+			glVertex3f( allPolygons[i].vertex[k].x , h-allPolygons[i].vertex[k].y, z);
+			glVertex3f( allPolygons[i].vertex[k].x , h-allPolygons[i].vertex[k].y, 0);
+			glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, 0);			
+			glEnd();
 			
-			glVertex3f( allPolygons[i].vertex[k].x , h-allPolygons[i].vertex[k].y, 0);	//fill the sides
-        	glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, 0); 
-        	glVertex3f( allPolygons[i].vertex[k].x , h-allPolygons[i].vertex[k].y, z);	
-        	glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, z); 
+		}
+		glColor3f(allPolygons[i].fillcolor[0], allPolygons[i].fillcolor[1], allPolygons[i].fillcolor[2]);
+		for (j = 0; j <alltriangles; ++j){
+			k = result[j].whichpol;
+			glColor3f(allPolygons[i].linecolor[0], allPolygons[i].linecolor[1], allPolygons[i].linecolor[2]);
+			glBegin(GL_TRIANGLES);
+			glVertex3f(result[j].vertex[0].x, h-result[j].vertex[0].y, 0);
+			glVertex3f(result[j].vertex[1].x, h-result[j].vertex[1].y, 0);
+			glVertex3f(result[j].vertex[2].x, h-result[j].vertex[2].y, 0);
+			glEnd();
+			glBegin(GL_TRIANGLES);
+			glVertex3f(result[j].vertex[0].x, h-result[j].vertex[0].y, z);
+			glVertex3f(result[j].vertex[1].x, h-result[j].vertex[1].y, z);
+			glVertex3f(result[j].vertex[2].x, h-result[j].vertex[2].y, z);
 			glEnd();
 		}
 	}
-	
 }
 
 void drawLines(){
@@ -528,8 +621,8 @@ void drawLines(){
 						}
 					}
 				}
-				glVertex2f( allPolygons[z].vertex[k].x , h-allPolygons[z].vertex[k].y ); 
-        		glVertex2f( allPolygons[z].vertex[k+1].x , h-allPolygons[z].vertex[k+1].y);	
+				glVertex2f( allPolygons[z].vertex[k].x , h - allPolygons[z].vertex[k].y ); 
+        		glVertex2f( allPolygons[z].vertex[k+1].x ,h - allPolygons[z].vertex[k+1].y);	
         		k++;
 			}
 
@@ -544,8 +637,8 @@ void drawLines(){
 							return;
 						}
 				}
-				glVertex2f( allPolygons[z].vertex[yiot-1].x , h-allPolygons[z].vertex[yiot-1].y);
-				glVertex2f(allPolygons[z].vertex[0].x, h-allPolygons[z].vertex[0].y);	
+				glVertex2f( allPolygons[z].vertex[yiot-1].x , h - allPolygons[z].vertex[yiot-1].y);
+				glVertex2f(allPolygons[z].vertex[0].x,h - allPolygons[z].vertex[0].y);	
 		    }
 		    glEnd();
 		}
@@ -625,57 +718,6 @@ bool LineIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y
 	return(1);
 	
 }
-/**************************** DISPLAY ****************************/
-void display(void) {
-	
-   	glClear( GL_COLOR_BUFFER_BIT );
-    glMatrixMode( GL_PROJECTION );
-    glLoadIdentity();
-    glOrtho(0, w, 0, h,0,400);
-   
-    if (triangleMode){ 	
-    	drawTriangles();
-    }
-    
-    if (normalMode){
-    	drawLines();
-    	fillTriangles();
-	} 
-	if (clipperDeclared && !triangleMode){
-		drawClipped();
-		triangulation();
-		fillTriangles();
-		clipperDeclared = false;	//done with clipping ready for new clipper
-		normalMode = true;			//back to normalMode
-	}
-	if (extrudeMode){
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		gluPerspective(90, w/h, 0.1f, 100.0f);
-		
-		glOrtho(0 ,w ,h ,0 , 0, 500);
-		
-  		glMatrixMode(GL_MODELVIEW);
-  		glLoadIdentity();
-
- 		float eyeX, eyeY, eyeZ;
- 		float radius = 150;
- 		eyeX = radius*sin(theta);
- 		eyeY = radius*sin(phi);
- 		eyeZ = radius*cos(theta);
- 		gluLookAt(eyeX, eyeY, eyeZ, 0, 0, -100, 0, 1.0f, 0);
-  	
-  		glLoadIdentity();
- 
-  		/*  Set View Angle */
-  		//glRotated(20,1,0,0);
-  		//glRotated(-20,0,1,0);
-		draw3d();
-	}
-	glFlush();
-	glutSwapBuffers();
-}	
 
 /**************************** MENU HANDLE ****************************/
 void actionMenuEvents(int option) {
@@ -699,7 +741,7 @@ void actionMenuEvents(int option) {
         	break;	
         case EXTRUDE :
         	printf("Extrude mode ON. Give me the depth from 0 to 30: ");
-        	scanf("%d \n", &depth);
+        //	scanf("%d \n", &depth);
         	extrudeMode = true;
         	glutPostRedisplay();
         	break;	
@@ -944,16 +986,17 @@ int main(int argc, char** argv) {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB );
 	window = glutCreateWindow("My Window");
-	glutInitWindowPosition(0, 0);
+	glutInitWindowPosition(100, 100);
 	glutInitWindowSize(WIDTH, HEIGHT);
 	w = glutGet( GLUT_WINDOW_WIDTH );
-    	h = glutGet( GLUT_WINDOW_HEIGHT );
+    h = glutGet( GLUT_WINDOW_HEIGHT );
 	initGL();
 	glutReshapeFunc(window_reshape);
 	glutDisplayFunc(display);
+	glutSpecialFunc(specialKeys);
 	createGLUTMenus(); 
 	glutKeyboardFunc(keyboard);
-
 	glutMainLoop(); 
+	glEnable(GL_DEPTH_TEST);
 	return 1;
 }
