@@ -50,6 +50,7 @@ typedef struct point{
 typedef struct polygon{
 	point vertex [100];
 	int howmany;
+	int z;
 	float linecolor[3];
 	float fillcolor[3];
 	
@@ -82,11 +83,11 @@ int clippoint = 0;
 int numofPol = 0;
 int numofClipped = 0;
 int new_vertex;
-int depth =200;
+int depth;
 float lineColor[] = {0.0, 0.0, 0.0};	/*** Default line color BLACK ***/
 float fillColor[] = {1.0, 1.0, 1.0};	/*** Default fill color WHITE ***/
 int phi = 1;
-int theta = -1;
+int theta = 4;
 int alltriangles =0;
 
 bool clippingMode = false;
@@ -162,17 +163,14 @@ polygon createPol (polygon myPolygon, int pos1, int pos2){	//create new polygon 
 	polygon newPolygon;
 	newPolygon.howmany = 0;
 	int k;
-	printf("pos1 %d pos2 %d \n", pos1, pos2);
 	for (int i=0; i<=abs(pos1-pos2); i++){
 		k = (pos1+i)%myPolygon.howmany;
 		newPolygon.vertex[newPolygon.howmany] = myPolygon.vertex[k];
 		newPolygon.howmany++;
 		if (k==pos2){
-			printf("BREAK\n");
 			break;
 		}
 	}
-	printf("HOW MANY CREATE: %d \n ", newPolygon.howmany );
 	return newPolygon;
 }
 
@@ -183,13 +181,11 @@ void checkClip(polygon myPolygon, point clipper[]){
 		polygon temnomena;
 		temnomena.howmany = 0;
 		temnomena = countInter(myPolygon, clipper, j);	//krata ta temnomena
-		printf("temnomena: %d \n", temnomena.howmany);
 		if (temnomena.howmany>2){				//an einai perissotera apo 2
 			temnomena = Sort(temnomena,temnomena.howmany, j);		//taksinomise ta  se auksousa
-			for (int z=1; z<temnomena.howmany-1; z+=2){					//gia kathe dyada (1-2,3-4 etc)
+			for (int z=1; z<temnomena.howmany-1; z+=2){				//gia kathe dyada (1-2,3-4 etc)
 				polygon nPolygon;							
 				if (temnomena.vertex[z].realpos + 1 == temnomena.vertex[z+1].realpos){	// an einai sinexomena real me to epomeno
-					printf("temn1 %d temn2 %d \n", temnomena.vertex[z-1].realpos, temnomena.vertex[z].realpos );
 					if (z==1){
 						nPolygon = createPol(myPolygon, temnomena.vertex[z-1].realpos,  temnomena.vertex[z].realpos ); //ftiakse new
 						nPolygon.linecolor[0] = myPolygon.linecolor[0];
@@ -214,13 +210,12 @@ void checkClip(polygon myPolygon, point clipper[]){
 				}
 			}
 			if (didyoucreate){
-				printf("did you create\n");
+			
 				return;
 			}	
 		}
 	}
 	
-	printf("NOT\n");
 	clippedPolygons[numofClipped] = myPolygon;
 	numofClipped++;
 	return;
@@ -392,10 +387,10 @@ void specialKeys(int key,int x,int y){
 			theta += 5;
 			break;
 		case GLUT_KEY_UP :
-			phi += 5;
+			phi -= 5;
 			break;
 		case GLUT_KEY_DOWN :
-			phi -= 5;
+			phi += 5;
 			break;
 	}
   	glutPostRedisplay();
@@ -461,9 +456,7 @@ void mouse(int button, int state, int x, int y) {
 			new_vertex = allPolygons[numofPol].howmany;
 
 			allPolygons[numofPol].vertex[new_vertex] = new_point;
-			allPolygons[numofPol].howmany ++;
-			printf("Korifes %d\n", allPolygons[numofPol].howmany);
-	
+			allPolygons[numofPol].howmany ++;	
 			//Detach right click from menu so can stop selecting points
 			glutDetachMenu(GLUT_RIGHT_BUTTON);
 		}	
@@ -494,7 +487,6 @@ void keyboard(unsigned char key, int x, int y) {
       case 'T':
       	normalMode = !normalMode;
       	triangleMode = !triangleMode;
-      	printf("TRUE\n");
 		glutPostRedisplay();
       	break;
    }
@@ -506,7 +498,6 @@ void display(void) {
     if (triangleMode){ 	
     	drawTriangles();
     }
-    
     if (normalMode){
     	glClear( GL_COLOR_BUFFER_BIT );
     	glMatrixMode( GL_PROJECTION );
@@ -533,19 +524,22 @@ void display(void) {
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 		
-		gluPerspective(90, w/h, 0.1f, 1200.0f);
-		glOrtho(0 ,w ,0 ,h , 0, 1000);
+		gluPerspective(90, w/h, -100, 1200.0f);
+		glOrtho(0 ,w ,0 ,h , -1000, 1000);
+		
+		glEnable(GL_DEPTH_TEST);			//making object opaque
+		glDepthMask(GL_TRUE);
+		glDepthFunc(GL_LEQUAL);
+		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 		
   		glMatrixMode(GL_MODELVIEW);
   		glLoadIdentity();
-  		glClear(GL_COLOR_BUFFER_BIT);
+  		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   		glLoadIdentity();
- 		glRotated(phi,1,0,0);
-  		glRotated(theta,0,1,0);
+ 		glRotated(phi,0.1,0,0);
+  		glRotated(theta,0,0.1,0);
  		
-  		glPushMatrix();
 		draw3d();
-		glPopMatrix();
 	}
 	
 	glutSwapBuffers();
@@ -563,17 +557,16 @@ void draw3d(){
 			glBegin(GL_LINES);		
 			glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, 0); 	//start point of edge
         	glVertex3f( allPolygons[i].vertex[k].x , h-allPolygons[i].vertex[k].y, 0);	//end point in 0 depth
-        	glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, z);  //start point of edge
-        	glVertex3f( allPolygons[i].vertex[k].x , h-allPolygons[i].vertex[k].y, z);	//end point in z depth
-        	glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, z);
+        	glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, allPolygons[i].z);  //start point of edge
+        	glVertex3f( allPolygons[i].vertex[k].x , h-allPolygons[i].vertex[k].y, allPolygons[i].z);	//end point in z depth
+        	glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, allPolygons[i].z);
         	glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, 0); //connect 0 to z depth
         	
-			
 			glEnd();
 			glColor3f(allPolygons[i].linecolor[0], allPolygons[i].linecolor[1], allPolygons[i].linecolor[2]);
 			glBegin(GL_QUADS);
-			glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, z); 
-			glVertex3f( allPolygons[i].vertex[k].x , h-allPolygons[i].vertex[k].y, z);
+			glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, allPolygons[i].z); 
+			glVertex3f( allPolygons[i].vertex[k].x , h-allPolygons[i].vertex[k].y, allPolygons[i].z);
 			glVertex3f( allPolygons[i].vertex[k].x , h-allPolygons[i].vertex[k].y, 0);
 			glVertex3f( allPolygons[i].vertex[j].x , h-allPolygons[i].vertex[j].y, 0);			
 			glEnd();
@@ -582,16 +575,15 @@ void draw3d(){
 		glColor3f(allPolygons[i].fillcolor[0], allPolygons[i].fillcolor[1], allPolygons[i].fillcolor[2]);
 		for (j = 0; j <alltriangles; ++j){
 			k = result[j].whichpol;
-			glColor3f(allPolygons[i].linecolor[0], allPolygons[i].linecolor[1], allPolygons[i].linecolor[2]);
 			glBegin(GL_TRIANGLES);
 			glVertex3f(result[j].vertex[0].x, h-result[j].vertex[0].y, 0);
 			glVertex3f(result[j].vertex[1].x, h-result[j].vertex[1].y, 0);
 			glVertex3f(result[j].vertex[2].x, h-result[j].vertex[2].y, 0);
 			glEnd();
 			glBegin(GL_TRIANGLES);
-			glVertex3f(result[j].vertex[0].x, h-result[j].vertex[0].y, z);
-			glVertex3f(result[j].vertex[1].x, h-result[j].vertex[1].y, z);
-			glVertex3f(result[j].vertex[2].x, h-result[j].vertex[2].y, z);
+			glVertex3f(result[j].vertex[0].x, h-result[j].vertex[0].y, allPolygons[k].z);
+			glVertex3f(result[j].vertex[1].x, h-result[j].vertex[1].y, allPolygons[k].z);
+			glVertex3f(result[j].vertex[2].x, h-result[j].vertex[2].y, allPolygons[k].z);
 			glEnd();
 		}
 	}
@@ -603,7 +595,6 @@ void drawLines(){
 
 	for (z = 0; z <=numofPol; z++){
 		if (allPolygons[z].howmany > 1){
-			printf("allPolygons[z].howmany %d \n",allPolygons[z].howmany);
 			glColor3f(allPolygons[z].linecolor[0], allPolygons[z].linecolor[1], allPolygons[z].linecolor[2]);
 			glLineWidth(2);
 			glBegin(GL_LINES);
@@ -740,8 +731,14 @@ void actionMenuEvents(int option) {
 			glutMouseFunc(mouse);
         	break;	
         case EXTRUDE :
-        	printf("Extrude mode ON. Give me the depth from 0 to 30: ");
-        //	scanf("%d \n", &depth);
+        	
+        	int i;
+        	for (i=0; i<numofPol; i++){
+        		printf("Extrude mode ON. Give me the depth for polygon %d from 0 to 1000: ", (i+1));
+        		scanf("%d", &depth);
+        		allPolygons[i].z = depth;
+			}
+        	
         	extrudeMode = true;
         	glutPostRedisplay();
         	break;	
