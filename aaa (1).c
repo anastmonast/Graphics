@@ -302,6 +302,7 @@ polygon clip (polygon myPolygon){
 		newPolygon.fillcolor[0] = myPolygon.fillcolor[0];
 		newPolygon.fillcolor[1] = myPolygon.fillcolor[1];
 		newPolygon.fillcolor[2] = myPolygon.fillcolor[2];
+		newPolygon.z = myPolygon.z;
 		newPolygon.howmany = 0;
 	
 		for (i = 0; i < allPoints; i++){
@@ -572,9 +573,10 @@ void draw3d(){
 			glEnd();
 			
 		}
-		glColor3f(allPolygons[i].fillcolor[0], allPolygons[i].fillcolor[1], allPolygons[i].fillcolor[2]);
+		
 		for (j = 0; j <alltriangles; ++j){
 			k = result[j].whichpol;
+			glColor3f(allPolygons[k].fillcolor[0], allPolygons[k].fillcolor[1], allPolygons[k].fillcolor[2]);
 			glBegin(GL_TRIANGLES);
 			glVertex3f(result[j].vertex[0].x, h-result[j].vertex[0].y, 0);
 			glVertex3f(result[j].vertex[1].x, h-result[j].vertex[1].y, 0);
