@@ -468,6 +468,7 @@ void mouse(int button, int state, int x, int y) {
 		glutAttachMenu(GLUT_RIGHT_BUTTON); //attach right click to menu again	
 		if (allPolygons[numofPol].howmany < 3){
 			allPolygons[numofPol].howmany = 0;
+			triangulation();
 			glutPostRedisplay();
     		return;
 		}
@@ -594,7 +595,6 @@ void draw3d(){
 void drawLines(){
 	
 	int j=0;	int k=0;	int z;
-
 	for (z = 0; z <=numofPol; z++){
 		if (allPolygons[z].howmany > 1){
 			glColor3f(allPolygons[z].linecolor[0], allPolygons[z].linecolor[1], allPolygons[z].linecolor[2]);
@@ -607,7 +607,8 @@ void drawLines(){
 					for (j=0; j<(yiot-3); j++){
 						if(LineIntersect(allPolygons[z].vertex[yiot-2].x, allPolygons[z].vertex[yiot-2].y, allPolygons[z].vertex[yiot-1].x, allPolygons[z].vertex[yiot-1].y, allPolygons[z].vertex[j].x, allPolygons[z].vertex[j].y, allPolygons[z].vertex[j+1].x, allPolygons[z].vertex[j+1].y)){
 							allPolygons[z].howmany = 0; // delete the vertexes
-							numofPol--;
+							drawingstopped=1;
+							glutAttachMenu(GLUT_RIGHT_BUTTON);
 							glutPostRedisplay();
 							glEnd();
 							return;
