@@ -25,22 +25,22 @@
 #define RIGHT 	3
 
 /***************** Colors *****************/
-#define WHITE		1	//glColor3f(1, 1, 1);
-#define BLACK 		2  	//glColor3f(0, 0, 0);
-#define RED 		3 	//glColor3f(1, 0, 0);
-#define DARK_GREEN 	4  	//glColor3f(0, 0.5, 0);
-#define LIGHT_GREEN 5 	//glColor3f(0, 1, 0);
+#define WHITE		1   //glColor3f(1, 1, 1);
+#define BLACK 		2   //glColor3f(0, 0, 0);
+#define RED 		3   //glColor3f(1, 0, 0);
+#define DARK_GREEN 	4   //glColor3f(0, 0.5, 0);
+#define LIGHT_GREEN 	5   //glColor3f(0, 1, 0);
 #define DARK_BLUE	6   //glColor3f(0, 0, 1);
 #define LIGHT_BLUE 	7   //glColor3f(0, 1, 1);
 #define PINK 		8   //gcColor3f(1, 0, 1);
-#define KHAKI 		9 	//glColor3f(0.62, 0.62, 0.37);
+#define KHAKI 		9   //glColor3f(0.62, 0.62, 0.37);
 #define PURPLE 		10  //glColor3f(0.5, 0, 1);
 #define BROWN 		11  //glColor3f(0.5, 0.2, 0);
 #define YELLOW 		12  //glColor3f(1, 1, 0);
 #define GRAY 		13  //glColor3f(0.5, 0.5, 0.5);
 #define ORANGE 		14  //glColor3f(1, 0.5, 0);
 #define GOLD 		15  //glColor3f(1, 0.85, 0);
-#define SILVER 		16 	//glColor3f(0.90, 0.91, 0.98);
+#define SILVER 		16  //glColor3f(0.90, 0.91, 0.98);
 
 typedef struct point{
 	int x, y;
@@ -180,10 +180,10 @@ void checkClip(polygon myPolygon, point clipper[]){
 	for (j=0; j<4; j++){				// gia kathe pleura tou clipper
 		polygon temnomena;
 		temnomena.howmany = 0;
-		temnomena = countInter(myPolygon, clipper, j);	//krata ta temnomena
-		if (temnomena.howmany>2){				//an einai perissotera apo 2
-			temnomena = Sort(temnomena,temnomena.howmany, j);		//taksinomise ta  se auksousa
-			for (int z=1; z<temnomena.howmany-1; z+=2){				//gia kathe dyada (1-2,3-4 etc)
+		temnomena = countInter(myPolygon, clipper, j);		//krata ta temnomena
+		if (temnomena.howmany>2){					//an einai perissotera apo 2
+			temnomena = Sort(temnomena,temnomena.howmany, j);	//taksinomise ta  se auksousa
+			for (int z=1; z<temnomena.howmany-1; z+=2){		//gia kathe dyada (1-2,3-4 etc)
 				polygon nPolygon;							
 				if (temnomena.vertex[z].realpos + 1 == temnomena.vertex[z+1].realpos){	// an einai sinexomena real me to epomeno
 					if (z==1){
